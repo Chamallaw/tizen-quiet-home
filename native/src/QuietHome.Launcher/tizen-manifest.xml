@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Quiet Home natif : app UI .NET ordinaire, installée et désinstallée comme n'importe quelle app.
+  {VERSION} est remplacé par tools/build.ps1.
+  Démarrage : réglage Samsung « Autorun Last App ». Le bouton Home reste celui de Samsung.
+-->
+<manifest xmlns="http://tizen.org/ns/packages" package="QHLauncher" version="{VERSION}" api-version="6">
+    <profile name="tv" />
+    <ui-application appid="QHLauncher.Home" exec="QuietHome.Launcher.dll" type="dotnet"
+                    multiple="false" nodisplay="false" taskmanage="true" launch_mode="single">
+        <label>Quiet Home</label>
+        <icon>quiethome.png</icon>
+        <metadata key="http://tizen.org/metadata/prefer_dotnet_aot" value="true" />
+    </ui-application>
+    <privileges>
+        <privilege>http://tizen.org/privilege/appmanager.launch</privilege>
+        <privilege>http://tizen.org/privilege/packagemanager.info</privilege>
+        <privilege>http://tizen.org/privilege/volume.set</privilege>
+        <!-- Uniquement pour les logs UDP vers le PC de dev (DevLogHost). -->
+        <privilege>http://tizen.org/privilege/internet</privilege>
+    </privileges>
+</manifest>

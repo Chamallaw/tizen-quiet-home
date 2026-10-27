@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Logique pure, sans dépendance Tizen : testable sur PC. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>QuietHome.Core</RootNamespace>
+  </PropertyGroup>
+</Project>

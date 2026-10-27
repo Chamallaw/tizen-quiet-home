@@ -1,0 +1,15 @@
+<Project>
+  <!--
+    Cible : QE65QN700BTXXC (2022), Tizen 6.5 = API 9, armv7, runtime .NET Core 3.1 embarqué.
+    Les assemblies Tizen ne sont PAS empaquetées : la TV les fournit (ExcludeAssets=runtime).
+  -->
+  <PropertyGroup>
+    <LangVersion>8.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <TizenNetVersion>9.0.0.16760</TizenNetVersion>
+    <Version>0.1.0</Version>
+    <Deterministic>true</Deterministic>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>

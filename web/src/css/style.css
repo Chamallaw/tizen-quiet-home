@@ -1,0 +1,130 @@
+/* Rendu fixe 1920x1080. Pas d'animations coûteuses : seulement transform/opacity. */
+:root {
+    --bg: #0e1116;
+    --surface: #1a1f27;
+    --text: #e8ecf1;
+    --muted: #8b95a3;
+    --accent: #4f9dff;
+    --focus: #ffffff;
+    --tile-w: 260px;
+    --tile-h: 160px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    position: relative;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "SamsungOne", "Tizen Sans", Arial, sans-serif;
+}
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 48px 96px 16px;
+}
+.brand { font-size: 40px; font-weight: 700; letter-spacing: 1px; }
+.status { display: flex; gap: 32px; align-items: center; }
+.clock { font-size: 40px; font-variant-numeric: tabular-nums; }
+.mode-label {
+    font-size: 22px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    background: #2e7d32;
+}
+
+.rows {
+    height: 840px;
+    padding: 0 96px;
+    overflow: hidden;
+}
+.row { margin-top: 32px; }
+.row-title { font-size: 28px; color: var(--muted); margin-bottom: 16px; }
+.row-track {
+    display: flex;
+    gap: 28px;
+    transition: transform 150ms ease-out;
+    will-change: transform;
+}
+.row-empty { font-size: 24px; color: var(--muted); padding: 40px 0; }
+
+.tile {
+    flex: 0 0 var(--tile-w);
+    height: var(--tile-h);
+    border-radius: 14px;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    position: relative;
+    outline: 4px solid transparent;
+    transition: transform 120ms ease-out;
+}
+.tile.focused {
+    outline-color: var(--focus);
+    transform: scale(1.08);
+}
+.tile img { width: 72px; height: 72px; object-fit: contain; }
+.tile .initials {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: 700;
+}
+.tile .label {
+    font-size: 22px;
+    max-width: 230px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.tile .badge {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 18px;
+}
+.tile.missing { opacity: 0.45; }
+
+.hints {
+    position: absolute;
+    bottom: 32px;
+    left: 96px;
+    right: 96px;
+    display: flex;
+    gap: 40px;
+    font-size: 20px;
+    color: var(--muted);
+    align-items: center;
+}
+.key {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    margin-right: 8px;
+    vertical-align: -2px;
+}
+.key-red { background: #e53935; }
+.key-green { background: #43a047; }
+.key-yellow { background: #fdd835; }
+.key-blue { background: #1e88e5; }
+
+.toast {
+    margin-left: auto;
+    color: var(--text);
+    opacity: 0;
+    transition: opacity 200ms;
+}
+.toast.visible { opacity: 1; }

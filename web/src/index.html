@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>Quiet Home</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">Quiet Home</div>
+        <div class="status">
+            <span id="mode-label" class="mode-label" hidden>MODE ÉDITION</span>
+            <span id="clock" class="clock">--:--</span>
+        </div>
+    </header>
+
+    <main id="rows" class="rows" aria-live="polite"></main>
+
+    <footer class="hints">
+        <span><i class="key key-yellow"></i>Épingler / désépingler</span>
+        <span><i class="key key-blue"></i>Masquer</span>
+        <span><i class="key key-green"></i>Mode édition</span>
+        <span><i class="key key-red"></i>Recharger</span>
+        <span id="toast" class="toast" role="status"></span>
+    </footer>
+
+    <!-- Ordre important : modules purs, puis plateforme, puis UI et démarrage. -->
+    <script src="js/defaults.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/catalog.js"></script>
+    <script src="js/focus.js"></script>
+    <script src="js/platform.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

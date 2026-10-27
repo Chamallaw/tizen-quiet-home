@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Quiet Home : écran d'accueil alternatif, Tizen Web App standard (aucun root).
+  Package id = exactement 10 caractères alphanumériques.
+  Aucune balise <access> : l'app n'a besoin d'aucun accès réseau.
+-->
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets"
+        id="http://quiet-home.local/QuietHome" version="0.1.0" viewmodes="maximized">
+    <tizen:application id="QuietHome1.QuietHome" package="QuietHome1" required_version="2.3"/>
+    <content src="index.html"/>
+    <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
+    <icon src="icon.png"/>
+    <name>Quiet Home</name>
+
+    <!-- Privilèges publics uniquement : signable avec un certificat Samsung "Public". -->
+    <tizen:privilege name="http://tizen.org/privilege/application.launch"/>
+    <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+
+    <tizen:profile name="tv-samsung"/>
+    <tizen:setting screen-orientation="landscape" context-menu="disable"
+                   background-support="disable" encryption="disable"
+                   install-location="auto" hwkey-event="enable"/>
+</widget>

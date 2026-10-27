@@ -1,0 +1,26 @@
+# Données propres à votre TV et à votre PC (fiches, logs, liste d'apps) : jamais publiées.
+.local/
+*.p12
+*.pwd
+*.pri
+*.csr
+device-profile.xml
+profiles.xml
+
+# Sorties de build
+native/dist/
+native/**/bin/
+native/**/obj/
+web/dist/
+.buildResult/
+*.wgt
+*.tpk
+
+# Rendus de travail (les images publiées sont dans docs/images/)
+native/preview/
+
+# Outils locaux
+.claude/
+.vs/
+.vscode/
+__pycache__/
