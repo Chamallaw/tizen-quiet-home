@@ -375,6 +375,10 @@ namespace QuietHome.UI
                 case "XF86Green": StartMove(focus.Current); break;
                 case "XF86Red": RefreshApps(true); break;
                 case "XF86Home": ResetFocus(); break;
+                case "XF86PowerOff":
+                    lock (redirectLock) redirect.NotePowerOff();
+                    Log.Info("touche Power : mise en veille");
+                    break;
                 default: Log.Info("touche ignorée : " + name); break;
             }
         }
@@ -494,7 +498,7 @@ namespace QuietHome.UI
                 }
                 if (launch)
                 {
-                    Log.Info("bouton Home : retour à Quiet Home");
+                    Log.Info("retour à Quiet Home (bouton Home ou rallumage)");
                     apps.Launch(selfAppId);
                 }
             }
@@ -517,9 +521,12 @@ namespace QuietHome.UI
             ExitAmbient();
         }
 
+        /// <summary>Premier plan / arrière-plan, signalé par l'application.</summary>
+        public bool Visible { get; set; } = true;
+
         void CheckIdle()
         {
-            if (ambient != null || overlay != null || config.AmbientMinutes < 0) return;
+            if (!Visible || ambient != null || overlay != null || config.AmbientMinutes < 0) return;
             if ((DateTime.Now - lastInput).TotalMinutes >= config.AmbientMinutes) EnterAmbient();
         }
 

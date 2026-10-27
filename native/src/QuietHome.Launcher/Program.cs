@@ -74,12 +74,14 @@ namespace QuietHome
         {
             base.OnPause();
             Log.Info("arrière-plan");
+            if (home != null) home.Visible = false;
         }
 
         protected override void OnResume()
         {
             base.OnResume();
             Log.Info("premier plan");
+            if (home != null) home.Visible = true;
             home?.Wake();
             home?.RefreshApps(false);
         }

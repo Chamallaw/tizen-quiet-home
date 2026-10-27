@@ -8,7 +8,25 @@
 | **Home deux fois** : le second appui moins de 6 s après le retour | L'accueil Samsung reste affiché (Smart Hub, paramètres natifs). |
 | **Source** → HDMI (PS5, Switch…) | Jamais intercepté. |
 | Récupération → *Ouvrir l'accueil Samsung* | Jamais intercepté. |
-| Réglages → *Bouton Home : accueil Samsung* | Désactive complètement le raccourci. Ce choix est mémorisé. |
+| Réglages → *Bouton Home : accueil Samsung* | Désactive complètement le raccourci et le retour au rallumage. Ce choix est mémorisé. |
+| **Rallumage de la TV** | Retour à Quiet Home si la TV reprend la dernière source, l'accueil Samsung ou l'app d'avant la veille. Un allumage direct sur une app (touche Netflix, Prime…) est respecté. |
+
+### Au rallumage
+
+En veille rapide, la TV garde Quiet Home en mémoire, mais au rallumage elle reprend la dernière **source** (souvent Samsung TV Plus). Quiet Home détecte la mise en veille de trois façons (touche Power, écran vide plus de 2 s, ou surveillance figée plus de 60 s) et revient dès qu'une app réapparaît :
+
+```
+17:30:40 touche Power : mise en veille
+17:30:59 premier plan → org.tizen.tv-viewer
+17:31:00 retour à Quiet Home (bouton Home ou rallumage)
+17:31:07 premier plan → QHLauncher.Home
+```
+
+La TV met quelques secondes à se réveiller avant d'afficher Quiet Home : la source reprise reste visible pendant ce temps. Pour l'atténuer, dans *Paramètres → Général → Fonctions Smart* :
+- désactivez **Exécution auto Samsung TV Plus** ;
+- activez **Exéc. auto dernière app**.
+
+Après une coupure de courant complète, Quiet Home n'est plus en mémoire : seul *Exéc. auto dernière app* peut le relancer.
 
 ## Comment ça marche, sans toucher au système
 

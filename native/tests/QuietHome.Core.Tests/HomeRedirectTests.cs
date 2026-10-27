@@ -84,6 +84,58 @@ public class HomeRedirectTests
     }
 
     [Fact]
+    public void Rallumage_sur_la_derniere_source_ramene_Quiet_Home()
+    {
+        // Séquence relevée sur la TV : Power depuis Quiet Home, écran vide, rallumage sur le lecteur TV.
+        var r = new HomeRedirect(Self);
+        Assert.False(r.Observe(Self, At(0)));
+        r.NotePowerOff();
+        Assert.False(r.Observe(null, At(3)));
+        Assert.False(r.Observe(null, At(4)));
+        Assert.True(r.Observe(Viewer, At(11)));
+        Assert.False(r.Observe(Self, At(13)));
+        Assert.False(r.Observe(Viewer, At(60)));   // ensuite, changer de source reste libre
+    }
+
+    [Fact]
+    public void Ecran_vide_prolonge_vaut_mise_en_veille()
+    {
+        var r = new HomeRedirect(Self);
+        Assert.False(r.Observe(Netflix, At(0)));
+        Assert.False(r.Observe(null, At(1)));
+        Assert.False(r.Observe(Netflix, At(2)));   // un relevé vide isolé : simple transition
+        Assert.False(r.Observe(null, At(3)));
+        Assert.False(r.Observe(null, At(4)));      // deux de suite : veille
+        Assert.True(r.Observe(Netflix, At(30)));   // reprise de l'app d'avant la veille
+    }
+
+    [Fact]
+    public void Trou_entre_deux_releves_vaut_mise_en_veille()
+    {
+        var r = new HomeRedirect(Self);
+        Assert.False(r.Observe(Viewer, At(0)));
+        Assert.True(r.Observe(Viewer, At(600)));   // processus figé 10 min puis rallumage
+    }
+
+    [Fact]
+    public void Allumage_par_une_touche_d_app_est_respecte()
+    {
+        var r = new HomeRedirect(Self);
+        Assert.False(r.Observe(Viewer, At(0)));
+        r.NotePowerOff();
+        Assert.False(r.Observe("org.tizen.primevideo", At(20)));   // touche Prime Video à l'allumage
+        Assert.False(r.Observe("org.tizen.primevideo", At(21)));
+    }
+
+    [Fact]
+    public void Rallumage_ignore_si_desactive()
+    {
+        var r = new HomeRedirect(Self) { Enabled = false };
+        r.NotePowerOff();
+        Assert.False(r.Observe(Viewer, At(10)));
+    }
+
+    [Fact]
     public void Pick_privilegie_Quiet_Home_puis_l_accueil_Samsung()
     {
         var r = new HomeRedirect(Self);
