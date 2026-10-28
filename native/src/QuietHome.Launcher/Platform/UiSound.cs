@@ -8,14 +8,13 @@ namespace QuietHome.Platform
 {
     /// <summary>
     /// Son du déplacement du curseur (res/sounds/tick-&lt;nom&gt;.wav), joué sans bloquer l'interface.
-    /// Un nouvel appui coupe le son précédent (touche maintenue). Ne lève jamais : en cas d'échec, il se tait.
+    /// Ne lève jamais : si le lecteur ne peut pas être créé, il se tait ; un échec de lecture isolé est journalisé une fois.
     /// </summary>
     public sealed class UiSound
     {
         readonly string directory;
         AudioStreamPolicy policy;
-        CancellationTokenSource playing;
-        bool broken;
+        bool broken, reported;
         string missing;
 
         public UiSound(string directory) { this.directory = directory; }
@@ -33,12 +32,12 @@ namespace QuietHome.Platform
                     return;
                 }
                 if (policy == null) policy = new AudioStreamPolicy(AudioStreamType.Media);
-                playing?.Cancel();
-                playing = new CancellationTokenSource();
-                WavPlayer.StartAsync(path, policy, playing.Token).ContinueWith(t =>
+                // Pas d'annulation du son précédent : sur la TV, WavPlayer échoue (« Failed to cancel »).
+                // Les sons durent moins de 0,15 s, ils peuvent se chevaucher.
+                WavPlayer.StartAsync(path, policy, CancellationToken.None).ContinueWith(t =>
                 {
                     var e = t.Exception?.GetBaseException();
-                    if (e != null && !(e is OperationCanceledException)) Log.Warn("son du curseur : " + e.Message);
+                    if (e != null && !reported) { reported = true; Log.Warn("son du curseur : " + e.Message); }
                 }, TaskContinuationOptions.OnlyOnFaulted);
             }
             catch (Exception e)
