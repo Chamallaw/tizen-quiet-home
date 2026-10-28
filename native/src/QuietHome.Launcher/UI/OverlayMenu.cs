@@ -63,7 +63,7 @@ namespace QuietHome.UI
                 Text = title,
                 Position = new Position(PadX, 44),
                 Size = new Size(PanelW - 2 * PadX, 70),
-                PointSize = 28,
+                PointSize = Palette.Pt(28),
                 TextColor = palette.Text,
                 FontFamily = Palette.Font("light"),
             });
@@ -84,16 +84,16 @@ namespace QuietHome.UI
                     FontFamily = Palette.Font("regular"),
                     Position = new Position(PadX + 8, ListTop + i * LineH),
                     Size = new Size(PanelW - 2 * PadX - 16, LineH - 8),
-                    PointSize = 18,
+                    PointSize = Palette.Pt(18),
                     VerticalAlignment = VerticalAlignment.Center,
                     Ellipsis = true,
                 };
                 var value = new TextLabel
                 {
-                    FontFamily = Palette.Font("light"),
+                    FontFamily = Palette.Font("regular"),
                     Position = new Position(PanelW / 2, ListTop + i * LineH),
                     Size = new Size(PanelW / 2 - PadX - 8, LineH - 8),
-                    PointSize = 17,
+                    PointSize = Palette.Pt(17),
                     VerticalAlignment = VerticalAlignment.Center,
                     HorizontalAlignment = HorizontalAlignment.End,
                     Ellipsis = true,
@@ -108,7 +108,7 @@ namespace QuietHome.UI
                 FontFamily = Palette.Font("regular"),
                 Position = new Position(PadX, panelH - 70),
                 Size = new Size(PanelW - 2 * PadX, 40),
-                PointSize = 13,
+                PointSize = Palette.Pt(13),
                 TextColor = palette.Muted,
             };
             panel.Add(footer);
@@ -148,14 +148,14 @@ namespace QuietHome.UI
                 {
                     // Section : petites capitales espacées, posées au bas de la ligne.
                     line.Text = string.Join(" ", item.Label.ToUpperInvariant().ToCharArray());
-                    line.PointSize = 12;
+                    line.PointSize = Palette.Pt(12);
                     line.VerticalAlignment = VerticalAlignment.Bottom;
                     line.TextColor = palette.Muted;
                     value.Text = "";
                     continue;
                 }
                 line.Text = item.Label;
-                line.PointSize = 18;
+                line.PointSize = Palette.Pt(18);
                 line.VerticalAlignment = VerticalAlignment.Center;
                 line.TextColor = !Selectable(item) ? palette.Muted : on ? palette.AccentText : palette.Text;
                 value.Text = item.Value == null ? "" : on && item.Adjust != null ? "‹  " + item.Value + "  ›" : item.Value;

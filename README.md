@@ -14,7 +14,7 @@
 
 - **Accueil épuré** :
   - vos apps favorites avec leurs logos et couleurs officiels (Netflix, YouTube, Jellyfin, Spotify, Prime Video, Disney+…) ;
-  - vos consoles en HDMI ;
+  - vos appareils HDMI (consoles, décodeur…), réglables dans l'app ;
   - l'heure, la date et une salutation ;
   - en option, la météo des prochaines 24 h, heure par heure.
 - **Bouton Home → Quiet Home**, depuis n'importe quelle app, en moins d'une seconde. La sélection reprend sur l'app qu'on vient de quitter. **Deux appuis rapides** ouvrent l'accueil Samsung : le Smart Hub et les paramètres restent toujours accessibles. Voir [docs/home-button.md](docs/home-button.md).
@@ -31,7 +31,7 @@
   - un son doux à chaque déplacement du curseur (Goutte, Bois ou Kalimba), désactivable.
 - **Réglages en deux parties** :
   - *Télévision* : volume, paramètres de la TV, accueil Samsung ;
-  - *Quiet Home* : thème, son du curseur, météo, bouton Home.
+  - *Quiet Home* : thème, son du curseur, météo, bouton Home, entrées HDMI (ce qui est branché sur chaque prise).
 
   Chaque réglage affiche sa valeur et se change sur place avec ◀ ▶.
 - **Récupération toujours accessible** : accueil Samsung, paramètres TV, réinitialisation, diagnostic (tests HDMI et volume, identification des touches).
@@ -48,9 +48,13 @@
 
 ### Toutes les apps, réglages et écran de veille
 
-| Toutes les apps | Réglages | Écran de veille |
+| Toutes les apps | Écran de veille |
+|---|---|
+| ![](docs/images/grille-apps.png) | ![](docs/images/veille.png) |
+
+| Réglages | Entrées HDMI | Décodeur et barre de son |
 |---|---|---|
-| ![](docs/images/grille-apps.png) | ![](docs/images/reglages.png) | ![](docs/images/veille.png) |
+| ![](docs/images/reglages.png) | ![](docs/images/hdmi.png) | ![](docs/images/appareils.png) |
 
 ## Principes
 

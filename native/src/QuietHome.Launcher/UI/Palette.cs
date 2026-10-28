@@ -24,6 +24,14 @@ namespace QuietHome.UI
         }
 
         public string Name => Spec.Name;
+
+        /// <summary>
+        /// Rapport taille de texte / point : la TV déclare 72 ppp (1 pt = 1 px), alors que la maquette est pensée
+        /// pour 96 ppp. Fixé au démarrage d'après Window.Dpi, pour des lettres aussi grandes, donc aussi nettes, que prévu.
+        /// </summary>
+        public static float TextScale = 1f;
+
+        public static float Pt(float points) => (float)System.Math.Round(points * TextScale);
         public PropertyMap BackgroundVisual() => Gradient(Spec.BackgroundFrom, Spec.BackgroundTo, 0);
 
         public static Color C(string hex)

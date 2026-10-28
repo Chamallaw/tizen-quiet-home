@@ -61,7 +61,7 @@ namespace QuietHome.UI
         Animation themeFade;
 
         // Météo : bandeau des prochaines 24 h sous les rangées ; une requête par heure au plus.
-        const float WeatherTop = 880, WeatherIconSize = 30;
+        const float WeatherTop = 880, WeatherIconSize = 32;
         static readonly TimeSpan WeatherEvery = TimeSpan.FromMinutes(60), WeatherRetry = TimeSpan.FromMinutes(10);
         readonly WeatherService weather;
         readonly UiSound sound;
@@ -85,6 +85,7 @@ namespace QuietHome.UI
             if (store.LastError != null) Log.Warn("config : " + store.LastError);
             palette = new Palette(Themes.Resolve(config, DateTimeOffset.Now));
 
+            Palette.TextScale = window.Dpi.Y > 0 ? System.Math.Max(1f, System.Math.Min(2f, 96f / window.Dpi.Y)) : 1f;
             float scale = window.WindowSize.Width / RefW;
             root = new View { Size = new Size(RefW, RefH), Scale = new Vector3(scale, scale, 1f),
                 PivotPoint = PivotPoint.TopLeft, ParentOrigin = ParentOrigin.TopLeft, PositionUsesPivotPoint = true };
@@ -97,11 +98,11 @@ namespace QuietHome.UI
                 DesiredWidth = (int)window.WindowSize.Width, DesiredHeight = (int)window.WindowSize.Height };
             root.Add(wallpaper);
 
-            clock = new TextLabel { Position = new Position(MarginX - 6, 70), Size = new Size(900, 160), PointSize = 84,
+            clock = new TextLabel { Position = new Position(MarginX - 6, 70), Size = new Size(900, 160), PointSize = Palette.Pt(84),
                 FontFamily = Palette.Font("extralight") };
             root.Add(clock);
-            date = new TextLabel { Position = new Position(MarginX, 228), Size = new Size(1100, 56), PointSize = 22, EnableMarkup = true,
-                FontFamily = Palette.Font("light") };
+            date = new TextLabel { Position = new Position(MarginX, 228), Size = new Size(1100, 56), PointSize = Palette.Pt(22), EnableMarkup = true,
+                FontFamily = Palette.Font("regular") };
             root.Add(date);
             // Barre du haut : Thème puis Réglages, alignés sur l'horloge, à droite.
             topBar = new View { Position = new Position(RefW - MarginX - 2 * TileStyle.Button.W - ButtonGap, 96),
@@ -115,9 +116,9 @@ namespace QuietHome.UI
             viewport.Add(rowsLayer);
 
             // Vide hors du mode déplacement : pas de raccourcis permanents à l'écran.
-            hint = new TextLabel { FontFamily = Palette.Font("regular"), Position = new Position(MarginX, RefH - 70), Size = new Size(900, 44), PointSize = 15 };
+            hint = new TextLabel { FontFamily = Palette.Font("regular"), Position = new Position(MarginX, RefH - 70), Size = new Size(900, 44), PointSize = Palette.Pt(15) };
             root.Add(hint);
-            toast = new TextLabel { FontFamily = Palette.Font("regular"), Position = new Position(RefW - MarginX - 800, RefH - 72), Size = new Size(800, 48), PointSize = 16,
+            toast = new TextLabel { FontFamily = Palette.Font("regular"), Position = new Position(RefW - MarginX - 800, RefH - 72), Size = new Size(800, 48), PointSize = Palette.Pt(16),
                 HorizontalAlignment = HorizontalAlignment.End };
             root.Add(toast);
 
@@ -126,12 +127,15 @@ namespace QuietHome.UI
             float cell = (RefW - 2 * MarginX) / Weather.ShownHours;
             for (int i = 0; i < Weather.ShownHours; i++)
             {
-                var hour = new TextLabel { Position = new Position(i * cell, 0), Size = new Size(cell, 30), PointSize = 13,
+                // Colonnes au pixel près : une position fractionnaire flouterait textes et pictogrammes.
+                float x = (float)Math.Round(i * cell), w = (float)Math.Round((i + 1) * cell) - x;
+                var hour = new TextLabel { Position = new Position(x, 0), Size = new Size(w, 30), PointSize = Palette.Pt(13),
                     HorizontalAlignment = HorizontalAlignment.Center, FontFamily = Palette.Font("regular") };
-                var icon = new ImageView { Position = new Position(i * cell + (cell - WeatherIconSize) / 2, 38),
-                    Size = new Size(WeatherIconSize, WeatherIconSize), DesiredWidth = 64, DesiredHeight = 64 };
-                var temp = new TextLabel { Position = new Position(i * cell, 76), Size = new Size(cell, 34), PointSize = 16,
-                    HorizontalAlignment = HorizontalAlignment.Center, FontFamily = Palette.Font("light") };
+                // Décodé à sa taille d'affichage : pas de réduction floue par la carte graphique.
+                var icon = new ImageView { Position = new Position((float)Math.Round(x + (w - WeatherIconSize) / 2), 38),
+                    Size = new Size(WeatherIconSize, WeatherIconSize), DesiredWidth = (int)WeatherIconSize, DesiredHeight = (int)WeatherIconSize };
+                var temp = new TextLabel { Position = new Position(x, 76), Size = new Size(w, 34), PointSize = Palette.Pt(16),
+                    HorizontalAlignment = HorizontalAlignment.Center, FontFamily = Palette.Font("regular") };
                 weatherStrip.Add(hour);
                 weatherStrip.Add(icon);
                 weatherStrip.Add(temp);
@@ -245,7 +249,7 @@ namespace QuietHome.UI
                 if (titled)
                 {
                     section.Add(new TextLabel { Text = row.Title.ToUpper(Fr), Position = new Position(MarginX, 0), Size = new Size(900, 44),
-                        PointSize = 14, TextColor = palette.Muted, FontFamily = Palette.Font("regular") });
+                        PointSize = Palette.Pt(14), TextColor = palette.Muted, FontFamily = Palette.Font("regular") });
                 }
                 float stride = style.W + TileGap;
                 var track = new View { Position = new Position(MarginX, trackTop), Size = new Size(Math.Max(1, row.Tiles.Count) * stride, style.Footprint) };
@@ -258,7 +262,7 @@ namespace QuietHome.UI
                 }
                 if (row.Tiles.Count == 0)
                 {
-                    track.Add(new TextLabel { FontFamily = Palette.Font("regular"), Text = "Aucun élément", Size = new Size(900, 56), PointSize = 16, TextColor = palette.Muted });
+                    track.Add(new TextLabel { FontFamily = Palette.Font("regular"), Text = "Aucun élément", Size = new Size(900, 56), PointSize = Palette.Pt(16), TextColor = palette.Muted });
                 }
                 section.Add(track);
                 rowsLayer.Add(section);
@@ -772,17 +776,17 @@ namespace QuietHome.UI
             ambientDim = new View { Size = new Size(RefW, RefH), BackgroundColor = Color.Black, Opacity = 0 };
 
             ambientBlock = new View { Position = new Position(AmbientX, AmbientY), Size = new Size(1400, 380) };
-            ambientClock = new TextLabel { Size = new Size(1400, 240), PointSize = 168, FontFamily = Palette.Font("extralight"),
+            ambientClock = new TextLabel { Size = new Size(1400, 240), PointSize = Palette.Pt(168), FontFamily = Palette.Font("extralight"),
                 TextColor = new Color(linen.R, linen.G, linen.B, 0.92f) };
             ambientBlock.Add(ambientClock);
             ambientBlock.Add(new View { Position = new Position(10, 262), Size = new Size(72, 3), CornerRadius = 1.5f, BackgroundColor = ocre });
-            ambientDate = new TextLabel { Position = new Position(8, 290), Size = new Size(1400, 60), PointSize = 26, EnableMarkup = true,
+            ambientDate = new TextLabel { Position = new Position(8, 290), Size = new Size(1400, 60), PointSize = Palette.Pt(26), EnableMarkup = true,
                 FontFamily = Palette.Font("light"), TextColor = new Color(linen.R, linen.G, linen.B, 0.72f) };
             ambientBlock.Add(ambientDate);
             ambient.Add(ambientBlock);
 
             ambient.Add(new TextLabel { Text = "QUIET HOME", Position = new Position(RefW - 160 - 400, RefH - 110), Size = new Size(400, 40),
-                PointSize = 11, HorizontalAlignment = HorizontalAlignment.End, FontFamily = Palette.Font("regular"),
+                PointSize = Palette.Pt(11), HorizontalAlignment = HorizontalAlignment.End, FontFamily = Palette.Font("regular"),
                 TextColor = new Color(linen.R, linen.G, linen.B, 0.28f) });
             ambient.Add(ambientDim);
             root.Add(ambient);
@@ -983,8 +987,40 @@ namespace QuietHome.UI
                 items.Add(weatherItem);
             }
             items.Add(home);
+            items.Add(new OverlayMenu.Item("Entrées HDMI", () => ShowHdmi(1)) { Value = HdmiSummary() });
             items.Add(new OverlayMenu.Item("Récupération et diagnostic", ShowRecovery));
             ShowOverlay("Réglages", items, selection);
+        }
+
+        /// <summary>
+        /// Appareil branché sur chaque prise HDMI (décodeur, consoles, barre de son…), réglé avec ◀ ▶.
+        /// La rangée Consoles / Appareils de l'accueil suit aussitôt.
+        /// </summary>
+        void ShowHdmi(int port)
+        {
+            var items = new List<OverlayMenu.Item> { OverlayMenu.Item.Section("Ce qui est branché") };
+            for (int p = 1; p <= HdmiPorts.Count; p++)
+            {
+                int n = p;
+                var line = new OverlayMenu.Item("HDMI " + n, null, keepOpen: true) { Value = HdmiPorts.At(config, n).Label };
+                line.Adjust = step =>
+                {
+                    SaveSetting(HdmiPorts.Set(config, n, HdmiPorts.Next(HdmiPorts.At(config, n).Key, step)));
+                    line.Value = HdmiPorts.At(config, n).Label;
+                };
+                items.Add(line);
+            }
+            items.Add(new OverlayMenu.Item(""));
+            items.Add(new OverlayMenu.Item("Chaque appareil a sa tuile sur l'accueil ; OK dessus bascule la TV sur sa prise."));
+            ShowOverlay("Entrées HDMI", items, port);
+        }
+
+        /// <summary>Résumé pour la ligne du panneau Réglages : « 2 appareils », « Aucun »…</summary>
+        string HdmiSummary()
+        {
+            int used = 0;
+            for (int p = 1; p <= HdmiPorts.Count; p++) if (HdmiPorts.At(config, p).Key != HdmiPorts.None) used++;
+            return used == 0 ? "Aucun" : used == 1 ? "1 appareil" : used + " appareils";
         }
 
         /// <summary>Enregistre un réglage changé depuis le panneau, qui reste ouvert.</summary>

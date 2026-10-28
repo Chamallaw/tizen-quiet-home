@@ -32,6 +32,11 @@ namespace QuietHome
                 Log.Info("polices DM Sans : " + (FontClient.Instance.AddCustomFontDirectory(fonts) ? "ok" : "échec"));
                 var window = GetDefaultWindow();
                 window.Title = "Quiet Home";
+                // Netteté : la résolution de dessin de la fenêtre (1920 ou 3840 de large) décide de la mise à l'échelle.
+                Tizen.System.Information.TryGetValue("http://tizen.org/feature/screen.width", out int screenW);
+                Tizen.System.Information.TryGetValue("http://tizen.org/feature/screen.height", out int screenH);
+                Log.Info("fenêtre " + window.WindowSize.Width + "x" + window.WindowSize.Height + ", dpi " + window.Dpi.X + "x" + window.Dpi.Y
+                    + ", écran annoncé " + screenW + "x" + screenH);
                 var weather = new WeatherService(System.IO.Path.Combine(DirectoryInfo.Data, "weather.json"));
                 var sound = new UiSound(System.IO.Path.Combine(DirectoryInfo.Resource, "sounds"));
                 home = new HomeScreen(window, store, new AppService(), weather, sound, ApplicationInfo.ApplicationId);

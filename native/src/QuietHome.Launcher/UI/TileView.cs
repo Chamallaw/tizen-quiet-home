@@ -58,7 +58,8 @@ namespace QuietHome.UI
                 {
                     ResourceUrl = icon ?? "",
                     Size = new Size(GlyphSize, GlyphSize),
-                    Position = new Position((style.W - GlyphSize) / 2, (style.H - GlyphSize) / 2),
+                    Position = new Position((float)System.Math.Round((style.W - GlyphSize) / 2), (float)System.Math.Round((style.H - GlyphSize) / 2)),
+                    DesiredWidth = (int)GlyphSize, DesiredHeight = (int)GlyphSize,
                     Color = palette.Muted,   // pictogramme blanc multiplié par la couleur du thème
                 };
                 Add(glyph);
@@ -89,7 +90,7 @@ namespace QuietHome.UI
             {
                 // Objet posé sur le bois : ombre portée douce et liseré clair.
                 card.BoxShadow = new Shadow(36, new Color(0, 0, 0, 0.5f), new Vector2(0, 16));
-                card.BorderlineWidth = 1.5f;
+                card.BorderlineWidth = 2f;   // trait entier : net à 1080p
                 card.BorderlineColor = new Color(1f, 0.94f, 0.86f, 0.10f);
                 card.Add(new View
                 {
@@ -105,13 +106,18 @@ namespace QuietHome.UI
             if (branded)
             {
                 bool input = tile.Kind == TileKind.Input;
-                var box = AspectFit(icon, style.W * 0.56f, style.H * (input ? 0.40f : 0.46f));
-                float centerY = style.H * (input ? 0.42f : 0.5f);
+                // Tuile d'appareil : variante du logo dessinée à sa taille (render_marks.py), si elle existe.
+                var hdmi = input ? Resolve(System.IO.Path.ChangeExtension(tile.IconPath, null) + "-hdmi.png") : null;
+                if (hdmi != null) icon = hdmi;
+                var box = AspectFit(icon, style.W * (input ? 0.50f : 0.56f), style.H * (input ? 0.38f : 0.46f));
+                float centerY = style.H * (input ? 0.57f : 0.5f);   // entrée : « HDMI n » occupe le haut
                 card.Add(new ImageView
                 {
                     ResourceUrl = icon,
                     Size = box,
-                    Position = new Position((style.W - box.Width) / 2, centerY - box.Height / 2),
+                    Position = new Position((float)System.Math.Round((style.W - box.Width) / 2), (float)System.Math.Round(centerY - box.Height / 2)),
+                    // Décodé à sa taille d'affichage : logo net, sans réduction par la carte graphique.
+                    DesiredWidth = (int)box.Width, DesiredHeight = (int)box.Height,
                     Color = Palette.C(!palette.Spec.SoftenTiles ? brand.MarkColor
                         : brand.MarkColor == "#ffffff" ? "#f3ece2" : Themes.Soften(brand.MarkColor, 0.9, 0.95)),
                 });
@@ -123,18 +129,20 @@ namespace QuietHome.UI
                     ResourceUrl = icon,
                     Size = new Size(36, 36),
                     Position = new Position(18, 16),
+                    DesiredWidth = 36, DesiredHeight = 36,
                     FittingMode = FittingModeType.ShrinkToFit,
                 });
             }
 
             if (tile.Kind == TileKind.Input)
             {
+                // « HDMI n » toujours en haut à droite, avec ou sans logo.
                 card.Add(new TextLabel
                 { FontFamily = Palette.Font("regular"),
                     Text = Subtitle(tile),
-                    Position = new Position(style.W - 116, style.H - 34),
+                    Position = new Position(style.W - 116, 14),
                     Size = new Size(100, 26),
-                    PointSize = 12,
+                    PointSize = Palette.Pt(12),
                     TextColor = palette.CardText,
                     HorizontalAlignment = HorizontalAlignment.End,
                     Opacity = 0.7f,
@@ -146,12 +154,12 @@ namespace QuietHome.UI
                 Text = tile.Label,
                 Position = new Position(18, style.H - 46),
                 Size = new Size(style.W - 36, 34),
-                PointSize = 16,
+                PointSize = Palette.Pt(16),
                 TextColor = palette.CardText,
                 VerticalAlignment = VerticalAlignment.Bottom,
                 MultiLine = false,
                 Ellipsis = true,
-                FontFamily = Palette.Font("light"),
+                FontFamily = Palette.Font("regular"),
             });
 
             marker = new View
@@ -234,8 +242,10 @@ namespace QuietHome.UI
                 float h = (head[20] << 24) | (head[21] << 16) | (head[22] << 8) | head[23];
                 if (w > 0 && h > 0)
                 {
+                    // Logo déjà à la bonne taille (au pixel près) : affiché tel quel, sans aucune mise à l'échelle.
+                    if (w <= maxW + 1 && h <= maxH + 1 && (w >= maxW - 1 || h >= maxH - 1)) return new Size(w, h);
                     float k = System.Math.Min(maxW / w, maxH / h);
-                    return new Size(w * k, h * k);
+                    return new Size((float)System.Math.Round(w * k), (float)System.Math.Round(h * k));
                 }
             }
             catch (System.Exception) { /* taille par défaut */ }

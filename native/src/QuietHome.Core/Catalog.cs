@@ -124,11 +124,13 @@ namespace QuietHome.Core
             rows.Add(quick);
             rows.Add(fav);
 
-            var inputs = new Row { Id = RowInputs, Title = "Consoles" };
+            // Appareils HDMI réglés dans l'app (Réglages → Entrées HDMI).
+            var shownInputs = cfg.Inputs.Where(i => i.Enabled && HdmiPorts.KindOf(i).Tile).ToList();
+            var inputs = new Row { Id = RowInputs, Title = HdmiPorts.RowTitle(shownInputs) };
             for (int i = 0; i < cfg.Inputs.Count; i++)
             {
                 var input = cfg.Inputs[i];
-                if (!input.Enabled) continue;
+                if (!shownInputs.Contains(input)) continue;
                 var icon = InputIcon(input);
                 inputs.Tiles.Add(new Tile { Key = "in:" + i, Kind = TileKind.Input, Label = input.Label,
                     Action = input.SourceId.ToString(System.Globalization.CultureInfo.InvariantCulture),

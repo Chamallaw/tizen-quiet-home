@@ -33,7 +33,7 @@ namespace QuietHome.UI
                 Text = "Toutes les apps",
                 Position = new Position(MarginX, 80),
                 Size = new Size(1200, 90),
-                PointSize = 40,
+                PointSize = Palette.Pt(40),
                 TextColor = palette.Text,
                 FontFamily = Palette.Font("extralight"),
             });
@@ -42,9 +42,9 @@ namespace QuietHome.UI
                 Text = tiles.Count + " applications · maintenir OK pour les favoris",
                 Position = new Position(MarginX, 160),
                 Size = new Size(1200, 40),
-                PointSize = 14,
+                PointSize = Palette.Pt(14),
                 TextColor = palette.Muted,
-                FontFamily = Palette.Font("light"),
+                FontFamily = Palette.Font("regular"),
             });
 
             viewport = new View { Position = new Position(0, Top), Size = new Size(screen.Width, screen.Height - Top),

@@ -68,6 +68,8 @@ namespace QuietHome.Core
         [DataMember(Order = 3)] public bool Enabled = true;
         /// <summary>Nom d'icône embarquée (res/icons/&lt;Icon&gt;.png) ; vide = déduite du libellé.</summary>
         [DataMember(Order = 4)] public string Icon;
+        /// <summary>Type d'appareil (HdmiPorts.Kinds) ; absent = déduit du nom.</summary>
+        [DataMember(Order = 5)] public string Kind;
 
         public InputSpec() { }
         public InputSpec(string label, int sourceId, string icon = null) { Label = label; SourceId = sourceId; Icon = icon; }

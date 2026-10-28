@@ -25,3 +25,7 @@ Le panneau **Réglages → Récupération et diagnostic → Diagnostic** affiche
 6. **Quitter le mode développeur** : Apps → `12345` → Off, puis redémarrez la TV.
 
 Un reset usine n'est jamais nécessaire : Quiet Home ne modifie rien en dehors de son propre dossier.
+
+## Image un peu floue
+
+La TV fait dessiner toutes les apps en 1920 × 1080, même sur une dalle 4K ou 8K, puis agrandit l'image. Le log de démarrage l'indique (« fenêtre 1920x1080 … écran annoncé 1920x1080 »). Quiet Home dessine ses logos, pictogrammes et textes au pixel près pour ce 1080p. Un léger adoucissement dû à l'agrandissement reste inévitable. Le réglage *Netteté* de l'image de la TV l'atténue un peu.

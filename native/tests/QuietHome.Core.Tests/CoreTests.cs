@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -150,6 +151,51 @@ public class CatalogTests
         Assert.Null(Catalog.InputIcon(new InputSpec("Box", 15)));
         cfg.Inputs[1].Enabled = false;
         Assert.Single(RowOf(Catalog.BuildRows(Apps, cfg), Catalog.RowInputs).Tiles);
+    }
+
+    [Fact]
+    public void Entrees_HDMI_reglees_dans_l_app()
+    {
+        var cfg = DefaultConfig.Create();
+        Assert.Equal("Rien", HdmiPorts.At(cfg, 1).Label);
+        Assert.Equal("ps5", HdmiPorts.At(cfg, 2).Key);
+        Assert.Equal("switch", HdmiPorts.At(cfg, 4).Key);
+
+        // Décodeur sur HDMI 1, barre de son (avec entrée HDMI) sur HDMI 3 : chacun sa tuile, la rangée devient « Appareils ».
+        cfg = HdmiPorts.Set(HdmiPorts.Set(cfg, 1, "decodeur"), 3, "barre");
+        var row = RowOf(Catalog.BuildRows(Apps, cfg), Catalog.RowInputs);
+        Assert.Equal("Appareils", row.Title);
+        Assert.Equal(new[] { "Décodeur TV", "PS5", "Barre de son", "Switch" }, row.Tiles.Select(t => t.Label));
+        Assert.Equal(new[] { "13", "14", "15", "16" }, row.Tiles.Select(t => t.Action));
+        Assert.Equal("res:icons/device-barre.png", row.Tiles[2].IconPath);
+        Assert.Equal("Barre de son", HdmiPorts.At(cfg, 3).Label);
+
+        // La PS5 change de prise : HDMI 2 vidé, HDMI 3 remplacé.
+        cfg = HdmiPorts.Set(HdmiPorts.Set(cfg, 2, HdmiPorts.None), 3, "ps5");
+        Assert.Equal("Rien", HdmiPorts.At(cfg, 2).Label);
+        Assert.Equal(new[] { 13, 15, 16 }, cfg.Inputs.Select(i => i.SourceId));
+        Assert.Equal("res:icons/playstation.png", RowOf(Catalog.BuildRows(Apps, cfg), Catalog.RowInputs).Tiles[1].IconPath);
+        foreach (var kind in HdmiPorts.Kinds.Where(k => k.Icon != null))   // chaque logo ou pictogramme existe
+            Assert.True(File.Exists(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "res", "icons", kind.Icon + ".png")), kind.Icon);
+
+        // Que des consoles : « Consoles ».
+        cfg = HdmiPorts.Set(cfg, 1, HdmiPorts.None);
+        Assert.Equal("Consoles", RowOf(Catalog.BuildRows(Apps, cfg), Catalog.RowInputs).Title);
+
+        // ◀ ▶ : Rien → PS5 → … → Appareil → Rien.
+        Assert.Equal("ps5", HdmiPorts.Next(HdmiPorts.None, 1));
+        Assert.Equal(HdmiPorts.None, HdmiPorts.Next("autre", 1));
+        Assert.Equal("autre", HdmiPorts.Next(HdmiPorts.None, -1));
+    }
+
+    [Fact]
+    public void Entrees_d_avant_le_reglage_reconnues_par_leur_nom()
+    {
+        var cfg = ConfigStore.Normalize(ConfigStore.Deserialize<LauncherConfig>(
+            "{\"Version\":5,\"Inputs\":[{\"Label\":\"PS5\",\"SourceId\":14,\"Enabled\":true},{\"Label\":\"Console\",\"SourceId\":16,\"Enabled\":true,\"Icon\":\"switch\"}]}"));
+        Assert.Equal("ps5", HdmiPorts.At(cfg, 2).Key);
+        Assert.Equal("switch", HdmiPorts.At(cfg, 4).Key);
+        Assert.Equal("Consoles", RowOf(Catalog.BuildRows(Apps, cfg), Catalog.RowInputs).Title);
     }
 }
 
