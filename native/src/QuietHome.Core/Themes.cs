@@ -119,9 +119,10 @@ namespace QuietHome.Core
             new Tone("#76806f", "#454c40"),   // mousse
         };
 
-        /// <summary>Salutation affichée après la date.</summary>
+        /// <summary>Salutation affichée après la date ; l'anglais distingue l'après-midi.</summary>
         public static string Greeting(int hour) =>
-            hour >= 5 && hour < 18 ? "Bonjour" : hour >= 18 && hour < 23 ? "Bonsoir" : "Bonne nuit";
+            Lang.T(hour >= 5 && hour < 12 ? "Bonjour" : hour >= 12 && hour < 18 ? (Lang.Current == Lang.English ? "Bon après-midi" : "Bonjour")
+                : hour >= 18 && hour < 23 ? "Bonsoir" : "Bonne nuit");
 
         public static ThemeSpec Get(string id) => All.FirstOrDefault(t => t.Id == id) ?? All[0];
 
@@ -161,8 +162,11 @@ namespace QuietHome.Core
         }
 
         /// <summary>Nom annoncé par le bouton Thème.</summary>
-        public static string Describe(LauncherConfig cfg) => cfg.Theme != Auto ? Get(cfg.Theme).Name
-            : "Automatique (jour : " + Get(cfg.DayTheme).Name + ", soir : " + Get(cfg.NightTheme).Name + ")";
+        public static string Describe(LauncherConfig cfg) => cfg.Theme != Auto ? NameOf(Get(cfg.Theme))
+            : Lang.F("Automatique (jour : {0}, soir : {1})", NameOf(Get(cfg.DayTheme)), NameOf(Get(cfg.NightTheme)));
+
+        /// <summary>Nom du thème dans la langue de l'interface.</summary>
+        public static string NameOf(ThemeSpec theme) => Lang.T(theme.Name);
 
         public static Brand BrandFor(string label)
         {
@@ -176,7 +180,7 @@ namespace QuietHome.Core
             var brand = BrandFor(label);
             if (brand != null) return brand.Tone;
             var l = (label ?? "").ToLowerInvariant();
-            if (l == "toutes les apps") return AllApps;
+            if (l == "toutes les apps" || l == "all apps") return AllApps;
             uint h = 0;
             foreach (var ch in l) h = h * 31 + ch;
             return Fallback[h % (uint)Fallback.Length];

@@ -1,5 +1,7 @@
 # Installation pas à pas
 
+[English](en/install.md) · **Français**
+
 Comptez environ 30 minutes la première fois. Ensuite, une mise à jour se fait en une commande.
 
 ## 0. Ce qu'il faut
@@ -78,6 +80,7 @@ Pour **mettre à jour**, relancez `deploy` avec un nouveau numéro de version, p
   - désactivez **Exécution auto Smart Hub** ;
   - ouvrez Quiet Home, puis éteignez la TV.
 - **Bouton Home** : rien à faire, Quiet Home s'en occupe dès qu'il tourne. Voir [home-button.md](home-button.md).
+- **Langue** : Quiet Home suit la langue de la TV (français si la TV est en français, anglais sinon). Pour la choisir : Réglages → *Langue*.
 
 ## 6. Voir les logs (recommandé pendant les essais)
 

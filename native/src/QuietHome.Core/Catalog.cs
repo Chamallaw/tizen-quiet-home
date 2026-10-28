@@ -86,7 +86,7 @@ namespace QuietHome.Core
             var rows = new List<Row>();
             var pinnedIds = new HashSet<string>();
 
-            var fav = new Row { Id = RowFavorites, Title = "Applications" };
+            var fav = new Row { Id = RowFavorites, Title = Lang.T("Applications") };
             for (int i = 0; i < cfg.Pinned.Count; i++)
             {
                 var pin = cfg.Pinned[i];
@@ -108,16 +108,16 @@ namespace QuietHome.Core
             // Épuré : la bibliothèque complète s'ouvre depuis la dernière tuile de la rangée.
             if (!cfg.ShowLibrary)
             {
-                var all = Act(ActAllApps, "Toutes les apps");
+                var all = Act(ActAllApps, Lang.T("Toutes les apps"));
                 all.IconPath = ResPrefix + "icons/apps.png";
                 fav.Tiles.Add(all);
             }
 
             var quick = new Row { Id = RowQuick, Title = "" };
-            var theme = Act(ActCycleTheme, "Thème");
+            var theme = Act(ActCycleTheme, Lang.T("Thème"));
             theme.IconPath = ResPrefix + "icons/theme.png";
             quick.Tiles.Add(theme);
-            var menu = Act(ActMenu, "Réglages");
+            var menu = Act(ActMenu, Lang.T("Réglages"));
             menu.IconPath = ResPrefix + "icons/settings.png";
             quick.Tiles.Add(menu);
             // Toujours en tête : « haut » depuis les applications mène aux réglages et à la récupération.
@@ -126,13 +126,13 @@ namespace QuietHome.Core
 
             // Appareils HDMI réglés dans l'app (Réglages → Entrées HDMI).
             var shownInputs = cfg.Inputs.Where(i => i.Enabled && HdmiPorts.KindOf(i).Tile).ToList();
-            var inputs = new Row { Id = RowInputs, Title = HdmiPorts.RowTitle(shownInputs) };
+            var inputs = new Row { Id = RowInputs, Title = Lang.T(HdmiPorts.RowTitle(shownInputs)) };
             for (int i = 0; i < cfg.Inputs.Count; i++)
             {
                 var input = cfg.Inputs[i];
                 if (!shownInputs.Contains(input)) continue;
                 var icon = InputIcon(input);
-                inputs.Tiles.Add(new Tile { Key = "in:" + i, Kind = TileKind.Input, Label = input.Label,
+                inputs.Tiles.Add(new Tile { Key = "in:" + i, Kind = TileKind.Input, Label = Lang.T(input.Label),
                     Action = input.SourceId.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     IconPath = icon == null ? null : ResPrefix + "icons/" + icon + ".png" });
             }
@@ -140,7 +140,7 @@ namespace QuietHome.Core
 
             if (cfg.ShowLibrary)
             {
-                var lib = new Row { Id = RowLibrary, Title = "Bibliothèque" };
+                var lib = new Row { Id = RowLibrary, Title = Lang.T("Bibliothèque") };
                 lib.Tiles.AddRange(apps
                     .Where(a => !string.IsNullOrEmpty(a.Id) && !a.NoDisplay && !pinnedIds.Contains(a.Id) && !IsHidden(a.Id, cfg))
                     .OrderBy(a => a.Label ?? a.Id, StringComparer.CurrentCultureIgnoreCase)

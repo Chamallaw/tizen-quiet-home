@@ -123,6 +123,8 @@ namespace QuietHome.Core
         [DataMember(Order = 23)] public string Weather = WeatherOn;
         /// <summary>Son du déplacement du curseur : un nom de CursorSounds (res/sounds/tick-&lt;nom&gt;.wav) ou « off ».</summary>
         [DataMember(Order = 24)] public string Sounds = CursorSounds[0];
+        /// <summary>Langue de l'interface : « auto » (celle de la TV), « fr » ou « en » (Lang.Choices).</summary>
+        [DataMember(Order = 25)] public string Language = Lang.Auto;
 
         public const string HomeKeyQuietHome = "quiethome", HomeKeySamsung = "samsung";
         public const string WeatherOn = "on", WeatherOff = "off";

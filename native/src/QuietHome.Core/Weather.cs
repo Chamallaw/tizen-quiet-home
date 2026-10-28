@@ -116,8 +116,18 @@ namespace QuietHome.Core
         public static string Degrees(double celsius) =>
             ((int)Math.Round(celsius, MidpointRounding.AwayFromZero)).ToString(CultureInfo.InvariantCulture) + "°";
 
-        /// <summary>Libellé d'une colonne : « Maint. », puis l'heure (« 16h »), et le jour abrégé à minuit (« jeu. »).</summary>
-        public static string HourLabel(DateTime local, bool first, CultureInfo culture) =>
-            first ? "Maint." : local.Hour == 0 ? local.ToString("ddd", culture) : local.Hour.ToString(CultureInfo.InvariantCulture) + "h";
+        /// <summary>
+        /// Libellé d'une colonne : « Maint. », puis l'heure (« 16h »), et le jour abrégé à minuit (« jeu. »).
+        /// En anglais : « Now », « 16:00 » (ou « 4pm » en 12 h), « Thu ».
+        /// </summary>
+        public static string HourLabel(DateTime local, bool first, CultureInfo culture, bool clock24h = true)
+        {
+            bool fr = culture.TwoLetterISOLanguageName == Lang.French;
+            if (first) return Lang.T("Maint.", fr ? Lang.French : Lang.English);
+            if (local.Hour == 0) return local.ToString("ddd", culture);
+            if (fr) return local.Hour.ToString(CultureInfo.InvariantCulture) + "h";
+            return clock24h ? local.ToString("HH:mm", CultureInfo.InvariantCulture)
+                : (local.Hour % 12 == 0 ? 12 : local.Hour % 12).ToString(CultureInfo.InvariantCulture) + (local.Hour < 12 ? "am" : "pm");
+        }
     }
 }

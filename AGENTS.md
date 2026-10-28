@@ -36,4 +36,5 @@ python -I native\tools\logs_listen.py <fichier> <minutes>
 - Le seul accès à Internet est la météo (Open-Meteo, HTTPS), active seulement si un lieu est indiqué. N'ajoutez pas d'autre service en ligne sans l'accord de l'utilisateur.
 - Les tests et la compilation tournent sur GitHub à chaque push (`.github/workflows/ci.yml`). Pour publier une version : ajoutez sa section dans `CHANGELOG.md`, puis poussez l'étiquette `vX.Y.Z` (`release.yml` crée la version GitHub avec ces notes).
 - Interface en coordonnées logiques 1920x1080, positionnement absolu, mise à l'échelle de la fenêtre.
-- Commentaires et textes de l'interface en français.
+- Commentaires en français. L'interface est en français et en anglais : tout texte affiché passe par `Lang.T` / `Lang.F` (texte français en clé) et reçoit sa traduction dans la table de `QuietHome.Core/Lang.cs`.
+- La documentation utilisateur existe en deux langues : `README.md` et `docs/en/` en anglais, `README.fr.md` et `docs/` en français. Mettez les deux à jour ensemble.

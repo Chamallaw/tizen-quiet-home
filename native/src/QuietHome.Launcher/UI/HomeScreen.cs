@@ -20,7 +20,6 @@ namespace QuietHome.UI
         const float MarginX = 80, RowsTop = 330, TitleH = 60, RowGap = 40, TileGap = 20;
         const int LongPressMs = 600;
         const float ButtonGap = 24;
-        static readonly CultureInfo Fr = new CultureInfo("fr-FR");
 
         readonly Window window;
         readonly ConfigStore store;
@@ -55,7 +54,7 @@ namespace QuietHome.UI
         DateTime ambientSince;
         bool ambientDimmed;
         bool moving, enterDown, longPressFired, keyProbe;
-        Timer toastTimer, longPressTimer, clockTimer, idleTimer, probeTimer;
+        Timer toastTimer, longPressTimer, clockTimer, idleTimer, probeTimer, reopenTimer;
         DateTime lastInput = DateTime.Now;
         string appsSignature = "";
         Animation themeFade;
@@ -83,6 +82,7 @@ namespace QuietHome.UI
             redirect = new HomeRedirect(selfAppId);
             config = store.Load();
             if (store.LastError != null) Log.Warn("config : " + store.LastError);
+            ApplyLanguage();
             palette = new Palette(Themes.Resolve(config, DateTimeOffset.Now));
 
             Palette.TextScale = window.Dpi.Y > 0 ? System.Math.Max(1f, System.Math.Min(2f, 96f / window.Dpi.Y)) : 1f;
@@ -179,19 +179,19 @@ namespace QuietHome.UI
                     appsSignature = signature;
                     Rebuild();
                 }
-                if (announce) Toast(Catalog.VisibleApps(installed, config).Count + " applications");
+                if (announce) Toast(Lang.F("{0} applications", Catalog.VisibleApps(installed, config).Count));
             }
             catch (Exception e)
             {
                 Log.Error("liste des apps", e);
-                Toast("Liste des apps indisponible");
+                Toast(Lang.T("Liste des apps indisponible"));
             }
         }
 
         void UpdateConfig(LauncherConfig next, string message = null)
         {
             config = next;
-            Toast(store.Save(config) ? message : "Sauvegarde impossible : " + store.LastError);
+            Toast(store.Save(config) ? message : Lang.F("Sauvegarde impossible : {0}", store.LastError));
             Rebuild();
         }
 
@@ -248,7 +248,7 @@ namespace QuietHome.UI
                 var section = new View { Position = new Position(0, y), Size = new Size(RefW, height) };
                 if (titled)
                 {
-                    section.Add(new TextLabel { Text = row.Title.ToUpper(Fr), Position = new Position(MarginX, 0), Size = new Size(900, 44),
+                    section.Add(new TextLabel { Text = row.Title.ToUpper(Lang.Culture), Position = new Position(MarginX, 0), Size = new Size(900, 44),
                         PointSize = Palette.Pt(14), TextColor = palette.Muted, FontFamily = Palette.Font("regular") });
                 }
                 float stride = style.W + TileGap;
@@ -262,7 +262,7 @@ namespace QuietHome.UI
                 }
                 if (row.Tiles.Count == 0)
                 {
-                    track.Add(new TextLabel { FontFamily = Palette.Font("regular"), Text = "Aucun élément", Size = new Size(900, 56), PointSize = Palette.Pt(16), TextColor = palette.Muted });
+                    track.Add(new TextLabel { FontFamily = Palette.Font("regular"), Text = Lang.T("Aucun élément"), Size = new Size(900, 56), PointSize = Palette.Pt(16), TextColor = palette.Muted });
                 }
                 section.Add(track);
                 rowsLayer.Add(section);
@@ -309,15 +309,15 @@ namespace QuietHome.UI
             }
             if (anim != null) { anim.AnimateTo(rowsLayer, "PositionY", y); anim.Play(); }
             else rowsLayer.PositionY = y;
-            hint.Text = moving ? "◀ ▶ pour déplacer · OK pour valider" : "";
+            hint.Text = moving ? Lang.T("◀ ▶ pour déplacer · OK pour valider") : "";
         }
 
         void UpdateClock()
         {
             var now = DateTime.Now;
-            clock.Text = config.Clock24h ? now.ToString("HH:mm", Fr) : now.ToString("h:mm tt", CultureInfo.InvariantCulture);
+            clock.Text = config.Clock24h ? now.ToString("HH:mm", CultureInfo.InvariantCulture) : now.ToString("h:mm tt", CultureInfo.InvariantCulture);
             // Salutation à la couleur d'accent du thème (balisage NUI).
-            date.Text = now.ToString("dddd d MMMM", Fr) + "  ·  <color value='" + palette.Spec.Marker + "'>"
+            date.Text = now.ToString("dddd d MMMM", Lang.Culture) + "  ·  <color value='" + palette.Spec.Marker + "'>"
                 + Themes.Greeting(now.Hour) + "</color>";
             if (ambient != null) UpdateAmbient(now, true);
         }
@@ -380,7 +380,7 @@ namespace QuietHome.UI
                 keyProbe = false;
                 probeTimer?.Stop();
                 Log.Info("touche identifiée : " + name);
-                Toast("Touche reçue : " + name);
+                Toast(Lang.F("Touche reçue : {0}", name));
                 return;
             }
             if (ambient != null)
@@ -526,8 +526,8 @@ namespace QuietHome.UI
             switch (tile.Kind)
             {
                 case TileKind.App:
-                    if (tile.Missing) { Toast(tile.Label + " n'est pas installée"); return; }
-                    if (!apps.Launch(tile.AppId)) { Toast("Impossible de lancer " + tile.Label); return; }
+                    if (tile.Missing) { Toast(Lang.F("{0} n'est pas installée", tile.Label)); return; }
+                    if (!apps.Launch(tile.AppId)) { Toast(Lang.F("Impossible de lancer {0}", tile.Label)); return; }
                     CloseGrid();
                     break;
                 case TileKind.Input:
@@ -555,26 +555,26 @@ namespace QuietHome.UI
         void OpenSettings(string menuItem)
         {
             var extras = menuItem == null ? null : new Dictionary<string, string> { { "menuitem", menuItem } };
-            if (!apps.Launch(config.SettingsAppId, extras)) Toast("Paramètres indisponibles");
+            if (!apps.Launch(config.SettingsAppId, extras)) Toast(Lang.T("Paramètres indisponibles"));
         }
 
         void TogglePin(Tile tile)
         {
             if (tile == null || tile.Kind != TileKind.App) return;
-            UpdateConfig(Catalog.TogglePin(config, tile), tile.Pinned ? "Retirée des favoris" : "Ajoutée aux favoris");
+            UpdateConfig(Catalog.TogglePin(config, tile), Lang.T(tile.Pinned ? "Retirée des favoris" : "Ajoutée aux favoris"));
             if (grid != null) ShowAllApps(); // état favori à jour dans la grille
         }
 
         void HideTile(Tile tile)
         {
             if (tile == null || tile.Kind != TileKind.App || tile.Missing) return;
-            UpdateConfig(Catalog.Hide(config, tile), tile.Label + " masquée");
+            UpdateConfig(Catalog.Hide(config, tile), Lang.F("{0} masquée", tile.Label));
             if (grid != null) ShowAllApps();
         }
 
         void StartMove(Tile tile)
         {
-            if (tile == null || !tile.Pinned) { Toast("Seuls les favoris se déplacent"); return; }
+            if (tile == null || !tile.Pinned) { Toast(Lang.T("Seuls les favoris se déplacent")); return; }
             moving = true;
             ApplyFocus(false);
         }
@@ -635,7 +635,7 @@ namespace QuietHome.UI
             for (int i = 0; i < hours.Count; i++)
             {
                 var local = hours[i].Utc.ToLocalTime();
-                weatherHours[i].Text = Weather.HourLabel(local, i == 0, Fr);
+                weatherHours[i].Text = Weather.HourLabel(local, i == 0, Lang.Culture, config.Clock24h);
                 // Maintenant en clair, minuit (jour abrégé) à la couleur d'accent, le reste en retrait.
                 weatherHours[i].TextColor = i == 0 ? palette.Text : local.Hour == 0 ? palette.Marker : palette.Muted;
                 var icon = TileView.Resolve(Catalog.ResPrefix + "icons/" + Weather.Icon(hours[i].Code, hours[i].IsDay) + ".png") ?? "";
@@ -715,6 +715,8 @@ namespace QuietHome.UI
                 ApplyTheme();
                 Rebuild();
             }
+            // Langue de la TV changée dans ses paramètres pendant qu'on était en arrière-plan (réglage automatique).
+            if (ApplyLanguage()) Rebuild();
             CheckAutoTheme(false);
             UpdateClock();
             UpdateWeather();
@@ -805,7 +807,7 @@ namespace QuietHome.UI
         {
             var ocre = palette.Spec.SoftenTiles ? palette.Spec.Marker : "#c79a5b";
             ambientClock.Text = clock.Text;
-            ambientDate.Text = now.ToString("dddd d MMMM", Fr) + "  ·  <color value='" + ocre + "'>" + Themes.Greeting(now.Hour) + "</color>";
+            ambientDate.Text = now.ToString("dddd d MMMM", Lang.Culture) + "  ·  <color value='" + ocre + "'>" + Themes.Greeting(now.Hour) + "</color>";
 
             // Dérive sur une petite ellipse : jamais deux minutes de suite au même endroit.
             double a = now.Minute * 0.9;
@@ -843,13 +845,13 @@ namespace QuietHome.UI
         void StartKeyProbe()
         {
             keyProbe = true;
-            Toast("Appuyez sur une touche…");
+            Toast(Lang.T("Appuyez sur une touche…"));
             probeTimer?.Stop();
             probeTimer = new Timer(10000);
             probeTimer.Tick += (s, e) =>
             {
                 // Touche gérée par le système (Home, TV Plus…) : elle n'arrive jamais à l'app.
-                if (keyProbe) { keyProbe = false; Toast("Aucune touche reçue (gérée par la TV)"); }
+                if (keyProbe) { keyProbe = false; Toast(Lang.T("Aucune touche reçue (gérée par la TV)")); }
                 return false;
             };
             probeTimer.Start();
@@ -875,10 +877,10 @@ namespace QuietHome.UI
             if (tile == null) return;
             if (tile.Kind != TileKind.App) { Activate(tile); return; }
             var items = new List<OverlayMenu.Item>();
-            if (!tile.Missing) items.Add(new OverlayMenu.Item("Ouvrir", () => Activate(tile)));
-            items.Add(new OverlayMenu.Item(tile.Pinned ? "Retirer des favoris" : "Ajouter aux favoris", () => TogglePin(tile)));
-            if (tile.Pinned && !tile.Missing && grid == null) items.Add(new OverlayMenu.Item("Déplacer", () => StartMove(tile)));
-            if (!tile.Missing) items.Add(new OverlayMenu.Item("Masquer", () => HideTile(tile)));
+            if (!tile.Missing) items.Add(new OverlayMenu.Item(Lang.T("Ouvrir"), () => Activate(tile)));
+            items.Add(new OverlayMenu.Item(Lang.T(tile.Pinned ? "Retirer des favoris" : "Ajouter aux favoris"), () => TogglePin(tile)));
+            if (tile.Pinned && !tile.Missing && grid == null) items.Add(new OverlayMenu.Item(Lang.T("Déplacer"), () => StartMove(tile)));
+            if (!tile.Missing) items.Add(new OverlayMenu.Item(Lang.T("Masquer"), () => HideTile(tile)));
             ShowOverlay(tile.Label, items);
         }
 
@@ -913,7 +915,7 @@ namespace QuietHome.UI
                     ShowManageFavorites(index);
                 }));
             }
-            ShowOverlay("Favoris", items, selection);
+            ShowOverlay(Lang.T("Favoris"), items, selection);
         }
 
         /// <summary>Bouton Thème : passe au suivant et l'enregistre aussitôt ; le focus reste sur le bouton.</summary>
@@ -928,7 +930,7 @@ namespace QuietHome.UI
             UpdateClock();
             Rebuild();
             var name = Themes.Describe(config);
-            Toast(saved ? name : name + " (non sauvegardé)");
+            Toast(saved ? name : Lang.F("{0} (non sauvegardé)", name));
         }
 
         /// <summary>
@@ -938,14 +940,14 @@ namespace QuietHome.UI
         /// </summary>
         void ShowSettings(int selection)
         {
-            var volume = new OverlayMenu.Item("Volume", null, keepOpen: true) { Value = VolumeValue(TvControls.ChangeVolume(0)) };
+            var volume = new OverlayMenu.Item(Lang.T("Volume"), null, keepOpen: true) { Value = VolumeValue(TvControls.ChangeVolume(0)) };
             volume.Adjust = step => volume.Value = VolumeValue(TvControls.ChangeVolume(2 * step));
             volume.Run = () => volume.Value = VolumeValue(TvControls.ToggleMute());
 
-            var theme = new OverlayMenu.Item("Thème", null, keepOpen: true) { Value = ThemeValue() };
+            var theme = new OverlayMenu.Item(Lang.T("Thème"), null, keepOpen: true) { Value = ThemeValue() };
             theme.Adjust = step => { CycleTheme(step); theme.Value = ThemeValue(); };
 
-            var sounds = new OverlayMenu.Item("Son du curseur", null, keepOpen: true) { Value = SoundValue() };
+            var sounds = new OverlayMenu.Item(Lang.T("Son du curseur"), null, keepOpen: true) { Value = SoundValue() };
             sounds.Adjust = step =>
             {
                 var next = ConfigStore.Clone(config);
@@ -954,7 +956,7 @@ namespace QuietHome.UI
                 sounds.Value = SoundValue();
             };
 
-            var home = new OverlayMenu.Item("Bouton Home", null, keepOpen: true) { Value = HomeKeyValue() };
+            var home = new OverlayMenu.Item(Lang.T("Bouton Home"), null, keepOpen: true) { Value = HomeKeyValue() };
             home.Adjust = step =>
             {
                 var next = ConfigStore.Clone(config);
@@ -965,17 +967,17 @@ namespace QuietHome.UI
 
             var items = new List<OverlayMenu.Item>
             {
-                OverlayMenu.Item.Section("Télévision"),
+                OverlayMenu.Item.Section(Lang.T("Télévision")),
                 volume,
-                new OverlayMenu.Item("Paramètres de la TV", () => OpenSettings(null)) { Value = "Samsung" },
-                new OverlayMenu.Item("Accueil Samsung", OpenSamsungHome) { Value = "Smart Hub" },
+                new OverlayMenu.Item(Lang.T("Paramètres de la TV"), () => OpenSettings(null)) { Value = "Samsung" },
+                new OverlayMenu.Item(Lang.T("Accueil Samsung"), OpenSamsungHome) { Value = "Smart Hub" },
                 OverlayMenu.Item.Section("Quiet Home"),
                 theme,
                 sounds,
             };
             if (config.HasPlace)
             {
-                var weatherItem = new OverlayMenu.Item("Météo", null, keepOpen: true) { Value = WeatherValue() };
+                var weatherItem = new OverlayMenu.Item(Lang.T("Météo"), null, keepOpen: true) { Value = WeatherValue() };
                 weatherItem.Adjust = step =>
                 {
                     var next = ConfigStore.Clone(config);
@@ -987,9 +989,11 @@ namespace QuietHome.UI
                 items.Add(weatherItem);
             }
             items.Add(home);
-            items.Add(new OverlayMenu.Item("Entrées HDMI", () => ShowHdmi(1)) { Value = HdmiSummary() });
-            items.Add(new OverlayMenu.Item("Récupération et diagnostic", ShowRecovery));
-            ShowOverlay("Réglages", items, selection);
+            int languageIndex = items.Count;
+            items.Add(LanguageItem(languageIndex));
+            items.Add(new OverlayMenu.Item(Lang.T("Entrées HDMI"), () => ShowHdmi(1)) { Value = HdmiSummary() });
+            items.Add(new OverlayMenu.Item(Lang.T("Récupération et diagnostic"), ShowRecovery));
+            ShowOverlay(Lang.T("Réglages"), items, selection);
         }
 
         /// <summary>
@@ -998,21 +1002,21 @@ namespace QuietHome.UI
         /// </summary>
         void ShowHdmi(int port)
         {
-            var items = new List<OverlayMenu.Item> { OverlayMenu.Item.Section("Ce qui est branché") };
+            var items = new List<OverlayMenu.Item> { OverlayMenu.Item.Section(Lang.T("Ce qui est branché")) };
             for (int p = 1; p <= HdmiPorts.Count; p++)
             {
                 int n = p;
-                var line = new OverlayMenu.Item("HDMI " + n, null, keepOpen: true) { Value = HdmiPorts.At(config, n).Label };
+                var line = new OverlayMenu.Item("HDMI " + n, null, keepOpen: true) { Value = Lang.T(HdmiPorts.At(config, n).Label) };
                 line.Adjust = step =>
                 {
                     SaveSetting(HdmiPorts.Set(config, n, HdmiPorts.Next(HdmiPorts.At(config, n).Key, step)));
-                    line.Value = HdmiPorts.At(config, n).Label;
+                    line.Value = Lang.T(HdmiPorts.At(config, n).Label);
                 };
                 items.Add(line);
             }
             items.Add(new OverlayMenu.Item(""));
-            items.Add(new OverlayMenu.Item("Chaque appareil a sa tuile sur l'accueil ; OK dessus bascule la TV sur sa prise."));
-            ShowOverlay("Entrées HDMI", items, port);
+            items.Add(new OverlayMenu.Item(Lang.T("Chaque appareil a sa tuile sur l'accueil ; OK dessus bascule la TV sur sa prise.")));
+            ShowOverlay(Lang.T("Entrées HDMI"), items, port);
         }
 
         /// <summary>Résumé pour la ligne du panneau Réglages : « 2 appareils », « Aucun »…</summary>
@@ -1020,50 +1024,88 @@ namespace QuietHome.UI
         {
             int used = 0;
             for (int p = 1; p <= HdmiPorts.Count; p++) if (HdmiPorts.At(config, p).Key != HdmiPorts.None) used++;
-            return used == 0 ? "Aucun" : used == 1 ? "1 appareil" : used + " appareils";
+            return used == 0 ? Lang.T("Aucun") : used == 1 ? Lang.T("1 appareil") : Lang.F("{0} appareils", used);
+        }
+
+        /// <summary>
+        /// Ligne Langue : Automatique (celle de la TV), Français, English. Le panneau se rouvre aussitôt
+        /// dans la nouvelle langue, sur la même ligne.
+        /// </summary>
+        OverlayMenu.Item LanguageItem(int index)
+        {
+            var item = new OverlayMenu.Item(Lang.T("Langue"), null, keepOpen: true) { Value = LanguageValue() };
+            item.Adjust = step =>
+            {
+                var next = ConfigStore.Clone(config);
+                next.Language = Lang.Next(config.Language, step);
+                bool changed = Lang.Use(next.Language, SystemLocale());
+                SaveSetting(next);
+                item.Value = LanguageValue();
+                if (!changed) return;
+                Log.Info("langue : " + Lang.Current);
+                UpdateClock();
+                // Le panneau en cours finit de traiter la touche : il est remplacé juste après.
+                reopenTimer?.Stop();
+                reopenTimer = new Timer(1);
+                reopenTimer.Tick += (s, e) => { overlay?.Close(); ShowSettings(index); return false; };
+                reopenTimer.Start();
+            };
+            return item;
+        }
+
+        string LanguageValue() => config.Language == Lang.Auto ? Lang.F("Automatique · {0}", Lang.Name(Lang.Current)) : Lang.Name(config.Language);
+
+        /// <summary>Applique le réglage de langue ; true si la langue affichée a changé.</summary>
+        bool ApplyLanguage() => Lang.Use(config.Language, SystemLocale());
+
+        /// <summary>Langue du système de la TV (« fr_FR », « en_GB »…), vide si illisible.</summary>
+        static string SystemLocale()
+        {
+            try { return Tizen.System.SystemSettings.LocaleLanguage ?? ""; }
+            catch (Exception) { return CultureInfo.CurrentUICulture.Name; }
         }
 
         /// <summary>Enregistre un réglage changé depuis le panneau, qui reste ouvert.</summary>
         void SaveSetting(LauncherConfig next)
         {
             config = next;
-            if (!store.Save(config)) Toast("Sauvegarde impossible : " + store.LastError);
+            if (!store.Save(config)) Toast(Lang.F("Sauvegarde impossible : {0}", store.LastError));
             Rebuild();
         }
 
         static string VolumeValue(string message) =>
             message.StartsWith("Volume ") && int.TryParse(message.Substring(7), out var level) ? level.ToString(CultureInfo.InvariantCulture) : message;
 
-        string ThemeValue() => config.Theme == Themes.Auto ? "Automatique" : Themes.Get(config.Theme).Name;
+        string ThemeValue() => config.Theme == Themes.Auto ? Lang.T("Automatique") : Themes.NameOf(Themes.Get(config.Theme));
 
-        string SoundValue() => config.Sounds == LauncherConfig.SoundsOff ? "Désactivé"
-            : char.ToUpper(config.Sounds[0], Fr) + config.Sounds.Substring(1);
+        string SoundValue() => config.Sounds == LauncherConfig.SoundsOff ? Lang.T("Désactivé")
+            : Lang.T(char.ToUpper(config.Sounds[0], CultureInfo.InvariantCulture) + config.Sounds.Substring(1));
 
-        string WeatherValue() => config.Weather != LauncherConfig.WeatherOn ? "Masquée"
-            : string.IsNullOrEmpty(config.Place) ? "Affichée" : "Affichée · " + config.Place;
+        string WeatherValue() => config.Weather != LauncherConfig.WeatherOn ? Lang.T("Masquée")
+            : string.IsNullOrEmpty(config.Place) ? Lang.T("Affichée") : Lang.F("Affichée · {0}", config.Place);
 
-        string HomeKeyValue() => config.HomeKey == LauncherConfig.HomeKeyQuietHome ? "Quiet Home" : "Accueil Samsung";
+        string HomeKeyValue() => config.HomeKey == LauncherConfig.HomeKeyQuietHome ? "Quiet Home" : Lang.T("Accueil Samsung");
 
         void OpenSamsungHome()
         {
             lock (redirectLock) redirect.AllowSamsungHome();
-            if (!apps.Launch(config.SamsungHomeAppId)) Toast("Accueil Samsung introuvable");
+            if (!apps.Launch(config.SamsungHomeAppId)) Toast(Lang.T("Accueil Samsung introuvable"));
         }
 
         void ShowRecovery()
         {
-            ShowOverlay("Récupération et diagnostic", new List<OverlayMenu.Item>
+            ShowOverlay(Lang.T("Récupération et diagnostic"), new List<OverlayMenu.Item>
             {
-                new OverlayMenu.Item("Ouvrir l'accueil Samsung", OpenSamsungHome),
-                new OverlayMenu.Item("Paramètres TV", () => OpenSettings(null)),
-                new OverlayMenu.Item("Paramètres réseau", () => OpenSettings("networksettings")),
-                new OverlayMenu.Item("Gérer les favoris (liste)", () => ShowManageFavorites(0)),
-                new OverlayMenu.Item("Réafficher les apps masquées", () => UpdateConfig(Catalog.UnhideAll(config), "Apps réaffichées")),
-                new OverlayMenu.Item("Rafraîchir la liste des apps", () => RefreshApps(true)),
-                new OverlayMenu.Item("Réinitialiser la configuration", () => { config = store.Reset(); ApplyTheme(); Rebuild(); Toast("Configuration d'usine"); }),
-                new OverlayMenu.Item("Diagnostic", ShowDiagnostic),
-                new OverlayMenu.Item("Démarrage automatique : mode d'emploi", ShowAutorunHelp),
-                new OverlayMenu.Item("Fermer Quiet Home", () => Tizen.Applications.Application.Current.Exit()),
+                new OverlayMenu.Item(Lang.T("Ouvrir l'accueil Samsung"), OpenSamsungHome),
+                new OverlayMenu.Item(Lang.T("Paramètres TV"), () => OpenSettings(null)),
+                new OverlayMenu.Item(Lang.T("Paramètres réseau"), () => OpenSettings("networksettings")),
+                new OverlayMenu.Item(Lang.T("Gérer les favoris (liste)"), () => ShowManageFavorites(0)),
+                new OverlayMenu.Item(Lang.T("Réafficher les apps masquées"), () => UpdateConfig(Catalog.UnhideAll(config), Lang.T("Apps réaffichées"))),
+                new OverlayMenu.Item(Lang.T("Rafraîchir la liste des apps"), () => RefreshApps(true)),
+                new OverlayMenu.Item(Lang.T("Réinitialiser la configuration"), () => { config = store.Reset(); ApplyLanguage(); ApplyTheme(); UpdateClock(); Rebuild(); Toast(Lang.T("Configuration d'usine")); }),
+                new OverlayMenu.Item(Lang.T("Diagnostic"), ShowDiagnostic),
+                new OverlayMenu.Item(Lang.T("Démarrage automatique : mode d'emploi"), ShowAutorunHelp),
+                new OverlayMenu.Item(Lang.T("Fermer Quiet Home"), () => Tizen.Applications.Application.Current.Exit()),
             });
         }
 
@@ -1071,36 +1113,37 @@ namespace QuietHome.UI
         {
             var items = new List<OverlayMenu.Item>
             {
-                new OverlayMenu.Item("Identifier une touche de la télécommande", StartKeyProbe),
-                new OverlayMenu.Item("Lancer l'écran de veille", EnterAmbient),
-                new OverlayMenu.Item("Tester HDMI 1 (13)", () => TestSource(13), keepOpen: true),
-                new OverlayMenu.Item("Tester HDMI 2 (14)", () => TestSource(14), keepOpen: true),
-                new OverlayMenu.Item("Tester HDMI 3 (15)", () => TestSource(15), keepOpen: true),
-                new OverlayMenu.Item("Tester HDMI 4 (16)", () => TestSource(16), keepOpen: true),
-                new OverlayMenu.Item("Tester Volume +", () => Toast(TvControls.ChangeVolume(+1)), keepOpen: true),
-                new OverlayMenu.Item("Config : " + store.Path),
-                new OverlayMenu.Item("Fenêtre : " + window.WindowSize.Width + "x" + window.WindowSize.Height),
-                new OverlayMenu.Item("Thème : " + Themes.Describe(config) + " → " + palette.Name),
-                new OverlayMenu.Item(!config.HasPlace ? "Météo : aucun lieu (.local/quiethome.json)"
-                    : "Météo : " + config.Place + " · " + (weather.FetchedUtc == DateTime.MinValue ? "pas encore reçue"
-                        : "reçue à " + weather.FetchedUtc.ToLocalTime().ToString("HH:mm", Fr))),
-                new OverlayMenu.Item("— Apps installées (id) —"),
+                new OverlayMenu.Item(Lang.T("Identifier une touche de la télécommande"), StartKeyProbe),
+                new OverlayMenu.Item(Lang.T("Lancer l'écran de veille"), EnterAmbient),
+                new OverlayMenu.Item(Lang.F("Tester HDMI {0} ({1})", 1, 13), () => TestSource(13), keepOpen: true),
+                new OverlayMenu.Item(Lang.F("Tester HDMI {0} ({1})", 2, 14), () => TestSource(14), keepOpen: true),
+                new OverlayMenu.Item(Lang.F("Tester HDMI {0} ({1})", 3, 15), () => TestSource(15), keepOpen: true),
+                new OverlayMenu.Item(Lang.F("Tester HDMI {0} ({1})", 4, 16), () => TestSource(16), keepOpen: true),
+                new OverlayMenu.Item(Lang.T("Tester Volume +"), () => Toast(TvControls.ChangeVolume(+1)), keepOpen: true),
+                new OverlayMenu.Item(Lang.F("Config : {0}", store.Path)),
+                new OverlayMenu.Item(Lang.F("Fenêtre : {0}", window.WindowSize.Width + "x" + window.WindowSize.Height)),
+                new OverlayMenu.Item(Lang.F("Langue : {0}", config.Language + " → " + Lang.Current + " (TV : " + SystemLocale() + ")")),
+                new OverlayMenu.Item(Lang.F("Thème : {0} → {1}", Themes.Describe(config), Themes.NameOf(palette.Spec))),
+                new OverlayMenu.Item(!config.HasPlace ? Lang.T("Météo : aucun lieu (.local/quiethome.json)")
+                    : Lang.F("Météo : {0} · {1}", config.Place, weather.FetchedUtc == DateTime.MinValue ? Lang.T("pas encore reçue")
+                        : Lang.F("reçue à {0}", weather.FetchedUtc.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture)))),
+                new OverlayMenu.Item(Lang.T("— Apps installées (id) —")),
             };
-            items.AddRange(installed.OrderBy(a => a.Id).Select(a => new OverlayMenu.Item((a.NoDisplay ? "[caché] " : "") + a.Id + "  " + a.Label)));
-            items.Add(new OverlayMenu.Item("— Journal —"));
+            items.AddRange(installed.OrderBy(a => a.Id).Select(a => new OverlayMenu.Item((a.NoDisplay ? Lang.T("[caché] ") : "") + a.Id + "  " + a.Label)));
+            items.Add(new OverlayMenu.Item(Lang.T("— Journal —")));
             items.AddRange(Log.Recent().Reverse().Select(l => new OverlayMenu.Item(l)));
-            ShowOverlay("Diagnostic", items);
+            ShowOverlay(Lang.T("Diagnostic"), items);
         }
 
         void ShowAutorunHelp()
         {
-            ShowOverlay("Ouvrir Quiet Home à l'allumage", new List<OverlayMenu.Item>
+            ShowOverlay(Lang.T("Ouvrir Quiet Home à l'allumage"), new List<OverlayMenu.Item>
             {
-                new OverlayMenu.Item("1. Paramètres › Général › Fonctions Smart"),
-                new OverlayMenu.Item("2. Exéc. auto dernière app : activé"),
-                new OverlayMenu.Item("3. Exécution auto Smart Hub : désactivé"),
-                new OverlayMenu.Item("4. Ouvrir Quiet Home puis éteindre la TV"),
-                new OverlayMenu.Item("Ouvrir les paramètres", () => OpenSettings(null)),
+                new OverlayMenu.Item(Lang.T("1. Paramètres › Général › Fonctions Smart")),
+                new OverlayMenu.Item(Lang.T("2. Exéc. auto dernière app : activé")),
+                new OverlayMenu.Item(Lang.T("3. Exécution auto Smart Hub : désactivé")),
+                new OverlayMenu.Item(Lang.T("4. Ouvrir Quiet Home puis éteindre la TV")),
+                new OverlayMenu.Item(Lang.T("Ouvrir les paramètres"), () => OpenSettings(null)),
             });
         }
     }

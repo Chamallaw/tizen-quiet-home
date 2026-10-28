@@ -2,6 +2,12 @@
 
 Chaque version poussée avec une étiquette `vX.Y.Z` est publiée sur GitHub avec les notes ci-dessous. Elle ne contient pas de `.tpk` prêt à installer : chaque TV signe son propre paquet avec son certificat Samsung ([docs/install.md](docs/install.md)).
 
+## 0.13.0 — 2026-10-28
+
+- **Interface en anglais** (*English interface*) : Réglages → *Langue* propose *Automatique* (la langue de la TV, par défaut), Français ou English. Tout suit aussitôt : rangées, tuiles d'appareils, date, salutation, météo (« Now », « 16:00 »), panneaux, messages et diagnostic.
+- **README et documentation en anglais** : `README.md` et `docs/en/` ; la version française est dans `README.fr.md` et `docs/`.
+- Rendus du README en anglais (`make_preview_kuri.py … en`) ; le panneau Réglages montre la nouvelle ligne *Langue*.
+
 ## 0.12.0 — 2026-10-28
 
 - **Entrées HDMI réglables dans l'app** : Réglages → *Entrées HDMI*. Pour chaque prise, ◀ ▶ choisit l'appareil : rien, PS5, Switch, Xbox, décodeur, Apple TV, Shield, barre de son, PC, Blu-ray ou autre. L'accueil suit aussitôt, sans toucher au code. Chaque appareil a sa tuile, avec son logo ou un pictogramme au trait. La rangée s'appelle *Consoles* ou *Appareils* selon son contenu.

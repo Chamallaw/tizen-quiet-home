@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using QuietHome.Core;
 using Tizen.NUI;
 using Tizen.NUI.BaseComponents;
 
@@ -147,7 +148,7 @@ namespace QuietHome.UI
                 if (item.Header)
                 {
                     // Section : petites capitales espacées, posées au bas de la ligne.
-                    line.Text = string.Join(" ", item.Label.ToUpperInvariant().ToCharArray());
+                    line.Text = string.Join(" ", item.Label.ToUpper(Lang.Culture).ToCharArray());
                     line.PointSize = Palette.Pt(12);
                     line.VerticalAlignment = VerticalAlignment.Bottom;
                     line.TextColor = palette.Muted;
@@ -161,8 +162,8 @@ namespace QuietHome.UI
                 value.Text = item.Value == null ? "" : on && item.Adjust != null ? "‹  " + item.Value + "  ›" : item.Value;
                 value.TextColor = on ? palette.AccentText : palette.Muted;
             }
-            footer.Text = current?.Adjust != null ? "◀ ▶ pour régler · Retour pour fermer"
-                : current?.Run != null ? "OK pour choisir · Retour pour fermer" : "Retour pour fermer";
+            footer.Text = Lang.T(current?.Adjust != null ? "◀ ▶ pour régler · Retour pour fermer"
+                : current?.Run != null ? "OK pour choisir · Retour pour fermer" : "Retour pour fermer");
         }
 
         int Step(int from, int dir)

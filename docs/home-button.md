@@ -1,5 +1,7 @@
 # Le raccourci du bouton Home
 
+[English](en/home-button.md) · **Français**
+
 ## Comportement
 
 | Geste | Résultat |
