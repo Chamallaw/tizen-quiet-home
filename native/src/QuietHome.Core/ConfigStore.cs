@@ -133,6 +133,9 @@ namespace QuietHome.Core
             if (cfg.AmbientMinutes == 0) cfg.AmbientMinutes = d.AmbientMinutes;
             if (cfg.HomeKey != LauncherConfig.HomeKeySamsung) cfg.HomeKey = LauncherConfig.HomeKeyQuietHome;
             if (cfg.Weather != LauncherConfig.WeatherOff) cfg.Weather = LauncherConfig.WeatherOn;
+            // Absent, ancien « on » ou inconnu : le son par défaut.
+            if (cfg.Sounds != LauncherConfig.SoundsOff && Array.IndexOf(LauncherConfig.CursorSounds, cfg.Sounds) < 0)
+                cfg.Sounds = LauncherConfig.CursorSounds[0];
             if (!Themes.Exists(cfg.DayTheme)) cfg.DayTheme = d.DayTheme;
             if (!Themes.Exists(cfg.NightTheme)) cfg.NightTheme = d.NightTheme;
             CheckPlace(cfg);

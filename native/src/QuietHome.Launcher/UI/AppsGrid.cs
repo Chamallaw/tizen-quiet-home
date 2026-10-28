@@ -76,9 +76,12 @@ namespace QuietHome.UI
 
         public Tile Current => focus.Current;
 
-        public void Move(Direction dir)
+        /// <summary>Déplace la sélection ; false si elle est déjà au bord.</summary>
+        public bool Move(Direction dir)
         {
-            if (focus.Move(dir)) Apply(true);
+            if (!focus.Move(dir)) return false;
+            Apply(true);
+            return true;
         }
 
         void Apply(bool animate)

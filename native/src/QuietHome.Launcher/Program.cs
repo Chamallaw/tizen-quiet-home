@@ -33,7 +33,8 @@ namespace QuietHome
                 var window = GetDefaultWindow();
                 window.Title = "Quiet Home";
                 var weather = new WeatherService(System.IO.Path.Combine(DirectoryInfo.Data, "weather.json"));
-                home = new HomeScreen(window, store, new AppService(), weather, ApplicationInfo.ApplicationId);
+                var sound = new UiSound(System.IO.Path.Combine(DirectoryInfo.Resource, "sounds"));
+                home = new HomeScreen(window, store, new AppService(), weather, sound, ApplicationInfo.ApplicationId);
                 window.KeyEvent += (s, e) => home.OnKey(e.Key);
                 home.RefreshApps(false);
             }

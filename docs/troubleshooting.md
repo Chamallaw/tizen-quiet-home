@@ -13,12 +13,12 @@
 | Carte HDMI : « refusée » ou « non disponible » | Identifiant de source différent sur votre modèle | Diagnostic → *Tester HDMI*, puis ajustez `InputSpec` |
 | Logo absent | Marque sans logo libre | Normal : la tuile garde la couleur de la marque et affiche le nom |
 
-Le panneau **Réglages → Récupération → Diagnostic** affiche le chemin de la configuration, toutes les apps installées et le journal, même sans PC.
+Le panneau **Réglages → Récupération et diagnostic → Diagnostic** affiche le chemin de la configuration, toutes les apps installées et le journal, même sans PC.
 
 ## Retour à l'état d'origine (du plus léger au plus complet)
 
 1. **Home deux fois** : l'accueil Samsung s'affiche. Rien n'a été modifié côté Samsung.
-2. **Réglages → Bouton Home : accueil Samsung** : le raccourci est désactivé.
+2. **Réglages → Bouton Home**, valeur *Accueil Samsung* : le raccourci est désactivé.
 3. **Récupération → Réinitialiser la configuration** : les favoris et le thème reviennent à leurs valeurs d'origine.
 4. **Désinstaller l'app** : `tv-native.ps1 -Action uninstall`, ou depuis la barre Apps.
 5. **Réglages TV** : *Autorun Last App* et *Exécution auto Smart Hub* reviennent à leur état d'origine.

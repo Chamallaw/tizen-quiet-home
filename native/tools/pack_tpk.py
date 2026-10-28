@@ -8,6 +8,7 @@ Arborescence produite (format TPK .NET) :
     res/icons/*.png                (logos et pictogrammes des tuiles)
     res/wallpapers/*.jpg           (fonds 3840x2160, générés par make_wallpaper.py)
     res/fonts/*.ttf + OFL.txt      (DM Sans, fetch_fonts.py)
+    res/sounds/*.wav               (sons de l'interface, make_sounds.py)
     res/local.json                 (facultatif : lieu de la météo, tiré de .local/quiethome.json)
     shared/res/quiethome.png       (icône de l'app)
 Les assemblies Tizen et le runtime ne sont pas inclus : la TV les fournit.
@@ -48,6 +49,8 @@ def main(bin_dir, manifest, res_dir, version, out, local=None):
             z.write(icon, f"res/icons/{icon.name}")
         for wall in sorted((res_dir / "wallpapers").glob("*.jpg")):
             z.write(wall, f"res/wallpapers/{wall.name}")
+        for sound in sorted((res_dir / "sounds").glob("*.wav")):
+            z.write(sound, f"res/sounds/{sound.name}")
         for font in sorted((res_dir / "fonts").glob("*")):
             z.write(font, f"res/fonts/{font.name}")
         if local:

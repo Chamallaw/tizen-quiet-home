@@ -2,6 +2,15 @@
 
 Chaque version poussée avec une étiquette `vX.Y.Z` est publiée sur GitHub avec les notes ci-dessous. Elle ne contient pas de `.tpk` prêt à installer : chaque TV signe son propre paquet avec son certificat Samsung ([docs/install.md](docs/install.md)).
 
+## 0.11.0 — 2026-10-28
+
+- **Son du curseur** : un son doux et très court à chaque déplacement, sur l'accueil, dans la grille et dans les menus. On choisit dans Réglages entre Goutte (par défaut), Bois et Kalimba, ou on le désactive.
+- **Réglages réorganisés** :
+  - deux parties, *Télévision* (volume, paramètres de la TV, accueil Samsung) et *Quiet Home* (thème, son, météo, bouton Home, récupération) ;
+  - chaque réglage affiche sa valeur et se change sur place avec ◀ ▶ ;
+  - une ligne d'aide en bas rappelle les touches.
+- Rendus des 5 thèmes et du panneau Réglages dans le README.
+
 ## 0.10.0 — 2026-10-28
 
 - **Retour sur l'app quittée** : après le bouton Home, la sélection reprend sur la tuile de l'app qu'on vient de quitter.
