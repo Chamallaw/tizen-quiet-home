@@ -6,7 +6,7 @@
 
 **Un écran d'accueil natif, calme et sans publicité pour les TV Samsung**, inspiré du design Japandi : mur de bois sombre, typographie fine, logos officiels des apps, consoles en un clic. Le **bouton Home de la télécommande y ramène directement**, sans root et sans modifier le système de la TV.
 
-![Accueil, thème Kuri](docs/images/accueil.png)
+![Accueil, thème Kuri, avec la météo des 24 prochaines heures](docs/images/theme-kuri.png)
 
 > Les images de ce README sont des **rendus** générés à partir des mêmes positions, couleurs, logos et polices que l'app (`native/tools/make_preview_kuri.py`). Ce ne sont pas des captures de la TV, que Tizen ne permet pas en mode développeur.
 
@@ -30,9 +30,21 @@
   - transitions animées.
 - **Récupération toujours accessible** : accueil Samsung, paramètres TV, réinitialisation, diagnostic (tests HDMI et volume, identification des touches).
 
-| Le jour (thème automatique) | Toutes les apps | Écran de veille |
+### Les 5 thèmes
+
+| Kuri · noyer (le soir, par défaut) | Chêne fumé | Sumi |
 |---|---|---|
-| ![](docs/images/accueil-jour.png) | ![](docs/images/toutes-les-apps.png) | ![](docs/images/ecran-de-veille.png) |
+| ![](docs/images/theme-kuri.png) | ![](docs/images/theme-fume.png) | ![](docs/images/theme-sumi.png) |
+
+| Hinoki (le jour, par défaut) | Japandi |
+|---|---|
+| ![](docs/images/theme-hinoki.png) | ![](docs/images/theme-japandi.png) |
+
+### Toutes les apps et écran de veille
+
+| Toutes les apps | Écran de veille |
+|---|---|
+| ![](docs/images/grille-apps.png) | ![](docs/images/veille.png) |
 
 ## Principes
 
