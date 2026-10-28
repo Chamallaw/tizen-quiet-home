@@ -41,7 +41,7 @@ native/
 
 **Interface** (1920x1080 logique, mise à l'échelle de la fenêtre), direction **Japandi** :
 - neutres chauds, beaucoup d'air, typographie légère ;
-- grande horloge fine et date en français ;
+- grande horloge fine et date, en français ou en anglais (`Lang`) ;
 - **Favoris** : Netflix, Jellyfin, Spotify, Prime Video, Disney+, en cartes à dégradé sourd (brique, glycine, mousse, ardoise, encre) ;
 - **Consoles** : PS5 (HDMI 2) et Switch (HDMI 4) ;
 - une ligne de puces : Toutes les apps, Volume −/+, Muet, Ambiance, Paramètres, **Récupération**.

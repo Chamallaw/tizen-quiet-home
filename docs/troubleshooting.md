@@ -1,5 +1,7 @@
 # Dépannage et retour à l'état d'origine
 
+[English](en/troubleshooting.md) · **Français**
+
 ## Problèmes fréquents
 
 | Symptôme | Cause probable | Solution |
@@ -12,8 +14,9 @@
 | Home ouvre l'accueil Samsung | Quiet Home fermé, ou raccourci désactivé | Relancez Quiet Home ; Réglages → *Bouton Home* |
 | Carte HDMI : « refusée » ou « non disponible » | Identifiant de source différent sur votre modèle | Diagnostic → *Tester HDMI*, puis ajustez `InputSpec` |
 | Logo absent | Marque sans logo libre | Normal : la tuile garde la couleur de la marque et affiche le nom |
+| Interface dans la mauvaise langue | *Automatique* suit la langue de la TV | Réglages → *Langue* (*Language* en anglais) : choisissez Français ou English |
 
-Le panneau **Réglages → Récupération et diagnostic → Diagnostic** affiche le chemin de la configuration, toutes les apps installées et le journal, même sans PC.
+Le panneau **Réglages → Récupération et diagnostic → Diagnostic** affiche le chemin de la configuration, la langue utilisée, toutes les apps installées et le journal, même sans PC.
 
 ## Retour à l'état d'origine (du plus léger au plus complet)
 

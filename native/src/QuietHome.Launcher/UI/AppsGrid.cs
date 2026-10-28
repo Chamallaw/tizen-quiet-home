@@ -30,7 +30,7 @@ namespace QuietHome.UI
 
             Add(new TextLabel
             {
-                Text = "Toutes les apps",
+                Text = Lang.T("Toutes les apps"),
                 Position = new Position(MarginX, 80),
                 Size = new Size(1200, 90),
                 PointSize = Palette.Pt(40),
@@ -39,7 +39,7 @@ namespace QuietHome.UI
             });
             Add(new TextLabel
             {
-                Text = tiles.Count + " applications · maintenir OK pour les favoris",
+                Text = Lang.F("{0} applications · maintenir OK pour les favoris", tiles.Count),
                 Position = new Position(MarginX, 160),
                 Size = new Size(1200, 40),
                 PointSize = Palette.Pt(14),

@@ -1,5 +1,7 @@
 # Installer et personnaliser avec un agent de code
 
+[English](en/agent.md) · **Français**
+
 Quiet Home a été développé avec un agent de code (Claude Code) qui pilotait le PC et la TV. Vous pouvez faire de même pour l'installer, l'adapter à votre TV ou le faire évoluer.
 
 ## Ce que l'agent fait, et ce qui reste à vous
@@ -38,5 +40,5 @@ Ne modifie aucun réglage système de la TV ni du PC sans me le demander.
 ## Conseils
 
 - **Logs d'abord** : demandez à l'agent d'écouter les logs (`tv-native.ps1 -Action logs`, ou `native/tools/logs_listen.py` en arrière-plan) avant chaque test. Sans eux, il travaille à l'aveugle.
-- **Rendus** : l'agent ne voit pas l'écran. `make_preview_kuri.py` lui permet de vous montrer l'interface, à partir des mêmes valeurs que l'app.
+- **Rendus** : l'agent ne voit pas l'écran. `make_preview_kuri.py` (avec `en` pour l'anglais) lui permet de vous montrer l'interface, à partir des mêmes valeurs que l'app.
 - **Vos données** : la fiche de la TV et les logs restent dans `.local/` (ignoré par git). Ne publiez ni le DUID, ni les certificats, ni vos IP.

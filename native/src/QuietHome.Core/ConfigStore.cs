@@ -136,6 +136,7 @@ namespace QuietHome.Core
             // Absent, ancien « on » ou inconnu : le son par défaut.
             if (cfg.Sounds != LauncherConfig.SoundsOff && Array.IndexOf(LauncherConfig.CursorSounds, cfg.Sounds) < 0)
                 cfg.Sounds = LauncherConfig.CursorSounds[0];
+            if (Array.IndexOf(Lang.Choices, cfg.Language) < 0) cfg.Language = Lang.Auto;
             if (!Themes.Exists(cfg.DayTheme)) cfg.DayTheme = d.DayTheme;
             if (!Themes.Exists(cfg.NightTheme)) cfg.NightTheme = d.NightTheme;
             CheckPlace(cfg);

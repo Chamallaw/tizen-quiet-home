@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using QuietHome.Core;
 
 namespace QuietHome.Platform
 {
@@ -24,10 +25,10 @@ namespace QuietHome.Platform
             return Guard("volume", () =>
             {
                 int r = sound_manager_get_master_volume(out int level);
-                if (r != 0) return "Volume illisible (" + r + ")";
+                if (r != 0) return Lang.F("Volume illisible ({0})", r);
                 int next = Math.Max(0, Math.Min(100, level + delta));
                 r = sound_manager_set_master_volume(next);
-                return r == 0 ? "Volume " + next : "Volume refusé (" + r + ")";
+                return r == 0 ? "Volume " + next : Lang.F("Volume refusé ({0})", r);
             });
         }
 
@@ -36,9 +37,9 @@ namespace QuietHome.Platform
             return Guard("mute", () =>
             {
                 int r = sound_manager_get_master_mute(out int muted);
-                if (r != 0) return "Muet illisible (" + r + ")";
+                if (r != 0) return Lang.F("Muet illisible ({0})", r);
                 r = sound_manager_set_master_mute(muted == 1 ? 0 : 1);
-                return r != 0 ? "Muet refusé (" + r + ")" : muted == 1 ? "Son rétabli" : "Muet";
+                return r != 0 ? Lang.F("Muet refusé ({0})", r) : Lang.T(muted == 1 ? "Son rétabli" : "Muet");
             });
         }
 
@@ -51,7 +52,7 @@ namespace QuietHome.Platform
             {
                 int r = connect_source(sourceId);
                 ok = r == 0;
-                return ok ? "Source " + sourceId : "Source " + sourceId + " refusée (" + r + ")";
+                return ok ? "Source " + sourceId : Lang.F("Source {0} refusée ({1})", sourceId, r);
             });
             message = msg;
             return ok;
@@ -68,17 +69,17 @@ namespace QuietHome.Platform
             catch (DllNotFoundException)
             {
                 Log.Warn(what + " : bibliothèque absente");
-                return "Non disponible sur cette TV";
+                return Lang.T("Non disponible sur cette TV");
             }
             catch (EntryPointNotFoundException)
             {
                 Log.Warn(what + " : fonction absente");
-                return "Non disponible sur cette TV";
+                return Lang.T("Non disponible sur cette TV");
             }
             catch (Exception e)
             {
                 Log.Error(what, e);
-                return "Erreur : " + e.Message;
+                return Lang.F("Erreur : {0}", e.Message);
             }
         }
     }

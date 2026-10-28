@@ -1,11 +1,12 @@
 """Maquettes 1920x1080 de Quiet Home, à partir des mêmes valeurs que l'app (HomeScreen, TileView, Themes).
 
-    python -I make_preview_kuri.py [dossier_de_sortie]
+    python -I make_preview_kuri.py [dossier_de_sortie] [fr|en]
 
 Produit, dans native/preview/ par défaut :
 - accueil-kuri.html     le soir : mur de noyer, tuiles adoucies, bandeau météo ;
 - accueil-hinoki.html   le jour (thème automatique) : dégradé clair, couleurs de marque franches ;
 - toutes-les-apps-kuri.html, veille-kuri.html.
+En anglais (« en »), les textes viennent de la table de QuietHome.Core/Lang.cs.
 À exporter en PNG avec Chrome headless (--window-size=1920,1080 --screenshot).
 La météo est un exemple d'automne (températures réelles de Paris, conditions variées pour montrer les pictogrammes).
 """
@@ -18,6 +19,14 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PT = 1.333  # px par point NUI, approximatif
 themes_cs = (ROOT / "src/QuietHome.Core/Themes.cs").read_text(encoding="utf-8")
+lang_cs = (ROOT / "src/QuietHome.Core/Lang.cs").read_text(encoding="utf-8")
+EN = dict(re.findall(r'\{ "([^"]*)",\s*"([^"]*)" \}', lang_cs))
+LANG = "fr"
+
+
+def L(text):
+    """Comme Lang.T : le texte français, ou sa traduction anglaise."""
+    return EN.get(text, text) if LANG == "en" else text
 
 SAT, LUM = 0.80, 0.82      # adoucissement des couleurs de marque (Themes.Soften)
 MARGIN, WEATHER_TOP, HOURS = 80, 880, 24
@@ -38,7 +47,8 @@ CODES = [0, 0, 0, 0, 0, 0, 45, 45, 2, 1, 2, 2, 3, 3, 2, 2, 3, 61, 61, 80, 3, 2, 
          0, 0, 0, 1, 3, 3, 45, 45, 2, 2, 1, 0, 0, 1, 2, 3, 3, 61, 61, 3, 2, 2, 1, 0]
 DAY = [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,
        0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0]
-WEEKDAYS = ["mer.", "jeu.", "ven."]
+WEEKDAYS = {"fr": ["mer.", "jeu.", "ven."], "en": ["Wed", "Thu", "Fri"]}
+DATE = {"fr": "mercredi 28 octobre", "en": "Wednesday 28 October"}
 
 
 def weather_icon(code, day):
@@ -125,7 +135,7 @@ def weather_strip(t, start, first_local_hour):
         k = start + i
         hour = (first_local_hour + i) % 24
         day_index = (first_local_hour + i) // 24
-        label = "Maint." if i == 0 else WEEKDAYS[day_index] if hour == 0 else f"{hour}h"
+        label = L("Maint.") if i == 0 else WEEKDAYS[LANG][day_index] if hour == 0 else f"{hour}h" if LANG == "fr" else f"{hour:02d}:00"
         color = t["Text"] if i == 0 else t["Marker"] if hour == 0 else t["Muted"]
         x = MARGIN + i * cell
         uri = data_uri(ROOT / "res/icons" / f"{weather_icon(CODES[k], DAY[k])}.png")
@@ -149,7 +159,7 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="
 def ambient_page(out):
     """Écran de veille, mêmes valeurs que HomeScreen.EnterAmbient (bloc à sa position de départ)."""
     wall = data_uri(ROOT / "res/wallpapers/kuri.jpg", "image/jpeg")
-    page = f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Quiet Home · veille</title>
+    page = f"""<!doctype html><html lang="{LANG}"><head><meta charset="utf-8"><title>Quiet Home · veille</title>
 {FONTS}
 <style>
 *{{margin:0;padding:0;box-sizing:border-box}}
@@ -165,7 +175,7 @@ html,body{{width:1920px;height:1080px;overflow:hidden;background:#0d0a08;font-fa
 </style></head><body>
 <div class="wall"></div><div class="veil"></div>
 <div class="block"><div class="clock">21:47</div><div class="line"></div>
-<div class="date">mercredi 28 octobre &nbsp;·&nbsp; <b>Bonsoir</b></div></div>
+<div class="date">{DATE[LANG]} &nbsp;·&nbsp; <b>{L("Bonsoir")}</b></div></div>
 <div class="brand">QUIET HOME</div>
 </body></html>"""
     out.write_text(page, encoding="utf-8")
@@ -175,8 +185,8 @@ html,body{{width:1920px;height:1080px;overflow:hidden;background:#0d0a08;font-fa
 def grid_page(css_head, out):
     margin, top, gap, cw, ch = 80, 210, 20, 202, 130
     row_h = ch + 26 + 34
-    body = ['<div class="gtitle">Toutes les apps</div>',
-            f'<div class="gsub">{len(INSTALLED)} applications · maintenir OK pour les favoris</div>']
+    body = [f'<div class="gtitle">{L("Toutes les apps")}</div>',
+            f'<div class="gsub">{L("{0} applications · maintenir OK pour les favoris").format(len(INSTALLED))}</div>']
     for i, name in enumerate(INSTALLED[:32]):
         r, c = divmod(i, 8)
         body.append(card(margin + c * (cw + gap), top + 24 + r * row_h, cw, ch, name, focused=(i == 7)))
@@ -195,15 +205,15 @@ def home_page(theme_id, clock, greeting, start, first_local_hour, focus_settings
     rows_top, title_h, row_gap, gap = 340, 60, 40, 20
     cw, ch, kh = 202, 130, 104
     body, y = [], rows_top
-    body.append(f'<div class="title" style="left:{MARGIN}px;top:{y}px">Applications</div>')
+    body.append(f'<div class="title" style="left:{MARGIN}px;top:{y}px">{L("Applications")}</div>')
     for i, name in enumerate(["Netflix", "YouTube", "Jellyfin", "Spotify", "Prime Video", "Disney+", "Free TV", "Toutes les apps"]):
-        body.append(card(MARGIN + i * (cw + gap), y + title_h, cw, ch, name, focused=(i == 3 and not focus_settings), soft=soft,
+        body.append(card(MARGIN + i * (cw + gap), y + title_h, cw, ch, L(name), focused=(i == 3 and not focus_settings), soft=soft,
                          icon_name="apps" if name == "Toutes les apps" else None))
     y += title_h + ch + 26 + row_gap
     title = "Consoles" if all(icon is None for _, _, icon in devices) else "Appareils"
-    body.append(f'<div class="title" style="left:{MARGIN}px;top:{y}px">{title}</div>')
+    body.append(f'<div class="title" style="left:{MARGIN}px;top:{y}px">{L(title)}</div>')
     for i, (name, sub, icon) in enumerate(devices):
-        body.append(card(MARGIN + i * (cw + gap), y + title_h, cw, kh, name, subtitle=sub, soft=soft, icon_name=icon))
+        body.append(card(MARGIN + i * (cw + gap), y + title_h, cw, kh, L(name), subtitle=sub, soft=soft, icon_name=icon))
     body.append(weather_strip(t, start, first_local_hour))
 
     settings = data_uri(ROOT / "res/icons/settings.png")
@@ -213,7 +223,7 @@ def home_page(theme_id, clock, greeting, start, first_local_hour, focus_settings
         background = f"{t['BackgroundTo']} url({wall}) center/1920px 1080px"
     else:
         background = f"linear-gradient(to bottom right,{t['BackgroundFrom']},{t['BackgroundTo']})"
-    page = f"""<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Quiet Home · {theme_id}</title>
+    page = f"""<!doctype html><html lang="{LANG}"><head><meta charset="utf-8"><title>Quiet Home · {theme_id}</title>
 {FONTS}
 <style>
 *{{margin:0;padding:0;box-sizing:border-box}}
@@ -242,7 +252,7 @@ body{{position:relative;font-family:"DM Sans",sans-serif;color:{t['Text']};backg
 .wi{{position:absolute;top:{WEATHER_TOP + 38}px;width:30px;height:30px;-webkit-mask:center/contain no-repeat}}
 .wt{{top:{WEATHER_TOP + 76}px;font-size:{16 * PT:.0f}px;font-weight:300}}
 </style></head><body>
-<div class="clock">{clock}</div><div class="date">mercredi 28 octobre · <b>{greeting}</b></div>
+<div class="clock">{clock}</div><div class="date">{DATE[LANG]} · <b>{L(greeting)}</b></div>
 <div class="btn" style="left:{1920 - MARGIN - 216}px"><span style="-webkit-mask-image:url({theme_icon})"></span></div>
 <div class="btn{' focus' if focus_settings else ''}" style="left:{1920 - MARGIN - 96}px"><span style="-webkit-mask-image:url({settings})"></span></div>
 {''.join(body)}
@@ -252,13 +262,21 @@ body{{position:relative;font-family:"DM Sans",sans-serif;color:{t['Text']};backg
 
 
 SETTINGS = [("h", "Télévision"), ("Volume", "18"), ("Paramètres de la TV", "Samsung"), ("Accueil Samsung", "Smart Hub"),
-            ("h", "Quiet Home"), ("Thème", "Automatique"), ("Son du curseur", "‹  Goutte  ›"), ("Météo", "Affichée · Lyon"),
-            ("Bouton Home", "Quiet Home"), ("Entrées HDMI", "3 appareils"), ("Récupération et diagnostic", "")]
+            ("h", "Quiet Home"), ("Thème", "Automatique"), ("Son du curseur", "‹  Goutte  ›"), ("Météo", "Affichée · {0}"),
+            ("Bouton Home", "Quiet Home"), ("Langue", "Automatique · {0}"), ("Entrées HDMI", "{0} appareils"), ("Récupération et diagnostic", "")]
 HDMI = [("h", "Ce qui est branché"), ("HDMI 1", "‹  Décodeur TV  ›"), ("HDMI 2", "PS5"), ("HDMI 3", "Barre de son"),
         ("HDMI 4", "Switch"), ("t", ""), ("t", "Chaque appareil a sa tuile sur l'accueil ; OK dessus bascule la TV sur sa prise.")]
 
 
 def settings_page(home_html, theme_id="kuri", title="Réglages", rows=SETTINGS, selected=6):
+    title = L(title)
+    fill = {"Langue": "English" if LANG == "en" else "Français", "Entrées HDMI": 3, "Météo": "Lyon"}
+
+    def value_of(label, value):
+        if "‹" in value:
+            return "‹  " + L(value.strip("‹› ")) + "  ›"
+        return L(value).format(fill[label]) if label in fill else L(value)
+    rows = [(label, L(value)) if label in ("h", "t") else (L(label), value_of(label, value)) for label, value in rows]
     """Panneau OverlayMenu sur l'accueil : sections, valeurs à droite, ligne sélectionnée."""
     t = theme(theme_id)
     line_h, top, pad, w = 64, 150, 60, 1040
@@ -288,12 +306,14 @@ def settings_page(home_html, theme_id="kuri", title="Réglages", rows=SETTINGS, 
                    f'<div style="position:absolute;right:{pad + 8}px;top:{y}px;height:{line_h - 8}px;line-height:{line_h - 8}px;'
                    f'font-size:{17 * PT:.0f}px;font-weight:300;color:{vcolor}">{value}</div>')
     out.append(f'<div style="position:absolute;left:{pad}px;top:{h - 64}px;font-size:{13 * PT:.0f}px;color:{t["Muted"]}">'
-               '◀ ▶ pour régler · Retour pour fermer</div></div>')
+               f'{L("◀ ▶ pour régler · Retour pour fermer")}</div></div>')
     return home_html.replace("</body>", "".join(out) + "</body>")
 
 
-def main(out_dir=None):
-    out_dir = pathlib.Path(out_dir or ROOT / "preview")
+def main(out_dir=None, lang="fr"):
+    global LANG
+    LANG = lang
+    out_dir = pathlib.Path(out_dir or ROOT / "preview" / ("" if lang == "fr" else lang))
     out_dir.mkdir(parents=True, exist_ok=True)
     night = home_page("kuri", "21:47", "Bonsoir", start=20, first_local_hour=21)
     (out_dir / "accueil-kuri.html").write_text(night, encoding="utf-8")

@@ -1,5 +1,7 @@
 # Personnaliser
 
+[English](en/customize.md) · **Français**
+
 ## Depuis la télécommande
 
 | Action | Où |
@@ -11,19 +13,26 @@
 | Son du curseur | Réglages → *Son du curseur*, ◀ ▶ : Goutte, Bois, Kalimba ou Désactivé. Le son choisi est joué à chaque changement |
 | Bouton Home | Réglages → *Bouton Home* |
 | Afficher ou masquer la météo | Réglages → *Météo* (si un lieu est indiqué) |
+| Langue | Réglages → *Langue*, ◀ ▶ : *Automatique* (celle de la TV), Français ou English |
 | Volume | Réglages → *Volume* : ◀ ▶ règle, OK coupe ou rétablit le son |
 | Appareils HDMI | Réglages → *Entrées HDMI* : pour chaque prise, ◀ ▶ choisit l'appareil (voir ci-dessous) |
 | Repartir de zéro | Réglages → Récupération et diagnostic → *Réinitialiser la configuration* |
 
 Le panneau Réglages a deux parties :
 - **Télévision** : volume, paramètres de la TV (ceux de Samsung) et accueil Samsung (Smart Hub) ;
-- **Quiet Home** : thème, son du curseur, météo, bouton Home, puis *Récupération et diagnostic*.
+- **Quiet Home** : thème, son du curseur, météo, bouton Home, langue, entrées HDMI, puis *Récupération et diagnostic*.
 
 Chaque réglage affiche sa valeur à droite et se change sur place avec ◀ ▶ (ou OK), sans fermer le panneau.
 
 La configuration est stockée sur la TV, dans le dossier `data` de l'app. Elle est conservée lors des mises à jour et effacée à la désinstallation.
 
-## Favoris et consoles par défaut
+## Langue
+
+L'interface existe en **français** et en **anglais**. En *Automatique* (par défaut), Quiet Home est en français si la TV est en français, en anglais sinon ; il revérifie au retour des paramètres de la TV. Changer la valeur dans Réglages → *Langue* redessine tout l'écran aussitôt : rangées, date, salutation, météo et panneaux.
+
+Les traductions sont dans `native/src/QuietHome.Core/Lang.cs` : le texte français sert de clé, la table donne le texte anglais. Un texte absent de la table reste en français. Un test vérifie que chaque entrée garde ses trous `{0}`.
+
+## Favoris et appareils par défaut
 
 Ils sont définis dans `native/src/QuietHome.Core/DefaultConfig.cs` :
 
@@ -81,6 +90,6 @@ La météo ne s'active que si vous indiquez un lieu, dans `.local/quiethome.json
 | Pictogrammes (apps, réglages, thème, météo, appareils) et logo de l'app | `native/tools/make_icons.py`, à leur taille d'affichage exacte |
 | Sons du curseur (Goutte, Bois, Kalimba) | `native/tools/make_sounds.py` : sinusoïdes pures, courtes (0,11 à 0,15 s), attaque arrondie, niveau bas |
 | Police DM Sans (OFL) | `native/tools/fetch_fonts.py`, enregistrée au démarrage via `FontClient.AddCustomFontDirectory` |
-| Rendus de l'accueil (5 thèmes), de la grille, des réglages et de la veille | `native/tools/make_preview_kuri.py`, puis capture avec Chrome headless |
+| Rendus de l'accueil (5 thèmes), de la grille, des réglages et de la veille | `native/tools/make_preview_kuri.py [dossier] [fr\|en]`, puis capture avec Chrome headless |
 
 Toutes les ressources générées sont déjà dans `native/res/`. Ces outils ne servent qu'à les modifier.
