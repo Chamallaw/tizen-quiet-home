@@ -7,6 +7,7 @@ Produit :
     res/icons/apps.png       grille 3x3 (blanc)
     res/icons/settings.png   curseurs de réglage (blanc, teinté par l'UI)
     res/icons/theme.png      cercle à moitié plein : changer de thème
+    res/icons/device-*.png   appareils HDMI sans logo : décodeur, barre de son, PC, Blu-ray, autre
     res/icons/weather-*.png  météo au trait : soleil, lune, nuages, brouillard, bruine, pluie, neige, orage
 Les icônes blanches sont teintées ou posées sur les dégradés par l'interface.
 Ce sont des pictogrammes génériques dessinés ici ; les logos officiels viennent de fetch_marks.py.
@@ -78,8 +79,11 @@ def write_png(path, size, rows):
     print(f"{path} ({len(data)} octets)")
 
 
-def white(sdf):
-    return lambda x, y: (255, 255, 255, 255 * cov(sdf(x, y)))
+def white(sdf, size=None):
+    """Pictogramme blanc. Avec size, dessiné directement à cette taille en pixels (dessin conçu sur S = 256) :
+    l'anticrénelage tombe sur les vrais pixels de la TV, sans réduction floue à l'affichage."""
+    k = S / size if size else 1.0
+    return lambda x, y: (255, 255, 255, 255 * cov(sdf(x * k, y * k) / k))
 
 
 def hexrgb(h):
@@ -217,6 +221,34 @@ def weather_icons():
     }
 
 
+# ---------- appareils HDMI sans logo de marque : même trait que la météo ----------
+
+def device_icons():
+    def decoder(x, y):
+        box = outline(sd_round_rect(x, y, 128, 132, 92, 36, 14), WS)
+        return min(box, sd_circle(x, y, 186, 132, 9), sd_segment(x, y, 64, 132, 120, 132, WS),
+                   sd_segment(x, y, 64, 186, 84, 186, WS), sd_segment(x, y, 172, 186, 192, 186, WS))
+
+    def soundbar(x, y):
+        bar = outline(sd_round_rect(x, y, 128, 128, 104, 26, 24), WS)
+        return min(bar, *(sd_circle(x, y, cx, 128, 8) for cx in (72, 128, 184)))
+
+    def pc(x, y):
+        screen = outline(sd_round_rect(x, y, 128, 108, 90, 62, 12), WS)
+        return min(screen, sd_segment(x, y, 128, 178, 128, 206, WS), sd_segment(x, y, 84, 210, 172, 210, WS))
+
+    def disc(x, y):
+        return min(sd_ring(x, y, 128, 128, 86, WS), sd_ring(x, y, 128, 128, 22, WS))
+
+    def plug(x, y):
+        # Prise HDMI vue de face : trapèze aux coins arrondis et ses contacts.
+        shell = sd_polyline(x, y, [(48, 92), (208, 92), (208, 136), (180, 168), (76, 168), (48, 136)], WS)
+        return min(shell, sd_segment(x, y, 84, 124, 172, 124, WS))
+
+    return {"device-decodeur": decoder, "device-barre": soundbar, "device-pc": pc,
+            "device-bluray": disc, "device-autre": plug}
+
+
 def quiethome(size=512):
     sand, clay = hexrgb("#efe7dc"), hexrgb("#d3c1aa")
     ink, seal = hexrgb("#2b2723"), hexrgb("#b0503c")
@@ -251,8 +283,14 @@ def quiethome(size=512):
 
 def main(res):
     res = pathlib.Path(res)
-    for name, fn in (("apps", apps), ("settings", settings), ("theme", theme), *weather_icons().items()):
-        write_png(res / "icons" / f"{name}.png", S, render(S, white(fn)))
+    # Chaque pictogramme est produit à sa taille d'affichage exacte (px de l'écran 1920x1080 de la TV) :
+    # boutons ronds 40, tuile « Toutes les apps » et appareils 36, météo 32 (trait de 2 px pile).
+    sizes = {"apps": 36, "settings": 40, "theme": 40}
+    icons = [("apps", apps), ("settings", settings), ("theme", theme)]
+    icons += [(n, f) for n, f in weather_icons().items()] + [(n, f) for n, f in device_icons().items()]
+    for name, fn in icons:
+        size = sizes.get(name, 32 if name.startswith("weather-") else 36)
+        write_png(res / "icons" / f"{name}.png", size, render(size, white(fn, size)))
     write_png(res / "quiethome.png", 512, quiethome())
 
 

@@ -92,9 +92,9 @@ def card(x, y, w, h, label, focused=False, subtitle=None, icon_name=None, soft=T
     # Sans fichier de logo, la marque garde son dégradé mais affiche son nom.
     if b and (ROOT / "res/icons" / f"{b[1]}.png").exists():
         iw, ih = png_size(b[1])
-        k = min(w * 0.56 / iw, h * (0.40 if subtitle else 0.46) / ih)
+        k = min(w * (0.50 if subtitle else 0.56) / iw, h * (0.38 if subtitle else 0.46) / ih)
         bw, bh = iw * k, ih * k
-        cy = h * (0.42 if subtitle else 0.5)
+        cy = h * (0.57 if subtitle else 0.5)
         if soft:
             mark = soften(b[4], 0.9, 0.95) if b[4].lower() != "#ffffff" else "#f3ece2"
         else:
@@ -109,7 +109,8 @@ def card(x, y, w, h, label, focused=False, subtitle=None, icon_name=None, soft=T
                        f'-webkit-mask:url({uri}) center/contain no-repeat"></div>')
         out.append(f'<div class="label">{label}</div>')
     if subtitle:
-        out.append(f'<div class="sub">{subtitle}</div>')
+        # Comme TileView : « HDMI n » toujours en haut à droite.
+        out.append(f'<div class="sub" style="top:14px;bottom:auto">{subtitle}</div>')
     out.append("</div>")
     if focused:
         out.append(f'<div class="marker" style="left:{x + (w - 56) / 2}px;top:{y + h + 18}px"></div>')
@@ -183,7 +184,12 @@ def grid_page(css_head, out):
     print(out)
 
 
-def home_page(theme_id, clock, greeting, start, first_local_hour, focus_settings=False):
+CONSOLES = (('PS5', 'HDMI 2', None), ('Switch', 'HDMI 4', None))
+DEVICES = (('Décodeur TV', 'HDMI 1', 'device-decodeur'), ('PS5', 'HDMI 2', None),
+           ('Barre de son', 'HDMI 3', 'device-barre'), ('Switch', 'HDMI 4', None))
+
+
+def home_page(theme_id, clock, greeting, start, first_local_hour, focus_settings=False, devices=CONSOLES):
     t = theme(theme_id)
     soft = theme_id in ("kuri", "fume")
     rows_top, title_h, row_gap, gap = 340, 60, 40, 20
@@ -194,9 +200,10 @@ def home_page(theme_id, clock, greeting, start, first_local_hour, focus_settings
         body.append(card(MARGIN + i * (cw + gap), y + title_h, cw, ch, name, focused=(i == 3 and not focus_settings), soft=soft,
                          icon_name="apps" if name == "Toutes les apps" else None))
     y += title_h + ch + 26 + row_gap
-    body.append(f'<div class="title" style="left:{MARGIN}px;top:{y}px">Consoles</div>')
-    for i, (name, sub) in enumerate((("PS5", "HDMI 2"), ("Switch", "HDMI 4"))):
-        body.append(card(MARGIN + i * (cw + gap), y + title_h, cw, kh, name, subtitle=sub, soft=soft))
+    title = "Consoles" if all(icon is None for _, _, icon in devices) else "Appareils"
+    body.append(f'<div class="title" style="left:{MARGIN}px;top:{y}px">{title}</div>')
+    for i, (name, sub, icon) in enumerate(devices):
+        body.append(card(MARGIN + i * (cw + gap), y + title_h, cw, kh, name, subtitle=sub, soft=soft, icon_name=icon))
     body.append(weather_strip(t, start, first_local_hour))
 
     settings = data_uri(ROOT / "res/icons/settings.png")
@@ -244,24 +251,31 @@ body{{position:relative;font-family:"DM Sans",sans-serif;color:{t['Text']};backg
 
 
 
-def settings_page(home_html, theme_id="kuri"):
-    """Panneau Réglages (OverlayMenu) sur l'accueil : sections, valeurs à droite, ligne sélectionnée."""
-    t = theme(theme_id)
-    rows = [("h", "Télévision"), ("Volume", "18"), ("Paramètres de la TV", "Samsung"), ("Accueil Samsung", "Smart Hub"),
+SETTINGS = [("h", "Télévision"), ("Volume", "18"), ("Paramètres de la TV", "Samsung"), ("Accueil Samsung", "Smart Hub"),
             ("h", "Quiet Home"), ("Thème", "Automatique"), ("Son du curseur", "‹  Goutte  ›"), ("Météo", "Affichée · Lyon"),
-            ("Bouton Home", "Quiet Home"), ("Récupération et diagnostic", "")]
-    selected = 6
+            ("Bouton Home", "Quiet Home"), ("Entrées HDMI", "3 appareils"), ("Récupération et diagnostic", "")]
+HDMI = [("h", "Ce qui est branché"), ("HDMI 1", "‹  Décodeur TV  ›"), ("HDMI 2", "PS5"), ("HDMI 3", "Barre de son"),
+        ("HDMI 4", "Switch"), ("t", ""), ("t", "Chaque appareil a sa tuile sur l'accueil ; OK dessus bascule la TV sur sa prise.")]
+
+
+def settings_page(home_html, theme_id="kuri", title="Réglages", rows=SETTINGS, selected=6):
+    """Panneau OverlayMenu sur l'accueil : sections, valeurs à droite, ligne sélectionnée."""
+    t = theme(theme_id)
     line_h, top, pad, w = 64, 150, 60, 1040
     h = top + len(rows) * line_h + 90
     x0, y0 = (1920 - w) / 2, (1080 - h) / 2
     out = [f'<div style="position:absolute;inset:0;background:rgba(0,0,0,.67)"></div>',
            f'<div style="position:absolute;left:{x0}px;top:{y0}px;width:{w}px;height:{h}px;border-radius:28px;background:{t["Surface"]}">',
-           f'<div style="position:absolute;left:{pad}px;top:44px;font-size:{28 * PT:.0f}px;font-weight:300;color:{t["Text"]}">Réglages</div>']
+           f'<div style="position:absolute;left:{pad}px;top:44px;font-size:{28 * PT:.0f}px;font-weight:300;color:{t["Text"]}">{title}</div>']
     for i, (label, value) in enumerate(rows):
         y = top + i * line_h
         if label == "h":
             out.append(f'<div style="position:absolute;left:{pad + 8}px;top:{y + 30}px;font-size:{12 * PT:.0f}px;letter-spacing:.3em;'
                        f'color:{t["Muted"]}">{value.upper()}</div>')
+            continue
+        if label == "t":
+            out.append(f'<div style="position:absolute;left:{pad + 8}px;top:{y}px;height:{line_h - 8}px;line-height:{line_h - 8}px;'
+                       f'font-size:{18 * PT:.0f}px;color:{t["Muted"]}">{value}</div>')
             continue
         on = i == selected
         if on:
@@ -293,6 +307,9 @@ def main(out_dir=None):
         (out_dir / f"accueil-{theme_id}.html").write_text(page, encoding="utf-8")
         print(out_dir / f"accueil-{theme_id}.html")
     (out_dir / "reglages-kuri.html").write_text(settings_page(night), encoding="utf-8")
+    (out_dir / "accueil-appareils.html").write_text(
+        home_page("kuri", "21:47", "Bonsoir", 20, 21, devices=DEVICES), encoding="utf-8")
+    (out_dir / "hdmi-kuri.html").write_text(settings_page(night, title="Entrées HDMI", rows=HDMI, selected=1), encoding="utf-8")
     (out_dir / "accueil-kuri-reglages.html").write_text(
         home_page("kuri", "21:47", "Bonsoir", start=20, first_local_hour=21, focus_settings=True), encoding="utf-8")
     head = night.split("<body>")[0].replace("</style>", """

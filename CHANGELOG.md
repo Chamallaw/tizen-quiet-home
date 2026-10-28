@@ -2,6 +2,17 @@
 
 Chaque version poussée avec une étiquette `vX.Y.Z` est publiée sur GitHub avec les notes ci-dessous. Elle ne contient pas de `.tpk` prêt à installer : chaque TV signe son propre paquet avec son certificat Samsung ([docs/install.md](docs/install.md)).
 
+## 0.12.0 — 2026-10-28
+
+- **Entrées HDMI réglables dans l'app** : Réglages → *Entrées HDMI*. Pour chaque prise, ◀ ▶ choisit l'appareil : rien, PS5, Switch, Xbox, décodeur, Apple TV, Shield, barre de son, PC, Blu-ray ou autre. L'accueil suit aussitôt, sans toucher au code. Chaque appareil a sa tuile, avec son logo ou un pictogramme au trait. La rangée s'appelle *Consoles* ou *Appareils* selon son contenu.
+- Les entrées configurées avant cette version sont reconnues par leur nom.
+- « HDMI n » s'affiche toujours en haut à droite des tuiles d'appareils.
+- **Netteté sur la TV** : la TV dessine les apps en 1920 × 1080 puis agrandit l'image pour sa dalle. On ne peut rien y changer, mais tout ce qui ajoutait du flou est corrigé :
+  - les textes sont à leur taille prévue (la TV déclare 72 ppp, et non 96) et les petits textes passent en graisse Regular ;
+  - les logos sont redessinés en vectoriel aux pixels exacts de chaque tuile (`-hdmi.png` pour les appareils) ;
+  - les pictogrammes sont dessinés à leur taille d'affichage ;
+  - les positions sont alignées sur les pixels entiers.
+
 ## 0.11.0 — 2026-10-28
 
 - **Son du curseur** : un son doux et très court à chaque déplacement, sur l'accueil, dans la grille et dans les menus. On choisit dans Réglages entre Goutte (par défaut), Bois et Kalimba, ou on le désactive.

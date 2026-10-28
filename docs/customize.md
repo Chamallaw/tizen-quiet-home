@@ -12,6 +12,7 @@
 | Bouton Home | Réglages → *Bouton Home* |
 | Afficher ou masquer la météo | Réglages → *Météo* (si un lieu est indiqué) |
 | Volume | Réglages → *Volume* : ◀ ▶ règle, OK coupe ou rétablit le son |
+| Appareils HDMI | Réglages → *Entrées HDMI* : pour chaque prise, ◀ ▶ choisit l'appareil (voir ci-dessous) |
 | Repartir de zéro | Réglages → Récupération et diagnostic → *Réinitialiser la configuration* |
 
 Le panneau Réglages a deux parties :
@@ -27,8 +28,23 @@ La configuration est stockée sur la TV, dans le dossier `data` de l'app. Elle e
 Ils sont définis dans `native/src/QuietHome.Core/DefaultConfig.cs` :
 
 - **Favoris** : chaque `PinSpec` liste des identifiants Tizen candidats et un mot-clé de secours, cherché dans le nom de l'app. Pour trouver les identifiants de votre TV : Réglages → Récupération → **Diagnostic**, qui liste toutes les apps installées avec leur identifiant.
-- **Consoles** : `InputSpec("PS5", 14)`. Le nombre est l'identifiant de source passé à `connect_source` (13 = HDMI 1, …, 16 = HDMI 4 sur les modèles testés). Pour calibrer : Diagnostic → *Tester HDMI 1…4*.
+- **Appareils HDMI** : PS5 sur HDMI 2 et Switch sur HDMI 4 par défaut (`InputSpec`). Ils se changent dans l'app, sans toucher au code (voir *Entrées HDMI*).
 - Une configuration déjà enregistrée sur la TV n'est pas écrasée. Les ajouts aux valeurs par défaut se font par **migration versionnée** (`ConfigStore.Normalize`, `LauncherConfig.CurrentVersion`).
+
+## Entrées HDMI
+
+Réglages → *Entrées HDMI* liste les prises HDMI 1 à 4. Sur chaque ligne, ◀ ▶ choisit ce qui est branché :
+
+| Appareil | Sur l'accueil |
+|---|---|
+| Rien | aucune tuile |
+| PS5, Switch, Xbox | tuile au logo de la console |
+| Apple TV, Shield | tuile au logo de la marque |
+| Décodeur TV, Barre de son (avec entrée HDMI), PC, Blu-ray, Appareil | tuile à son nom, avec un pictogramme |
+
+Le changement est enregistré tout de suite et la rangée de l'accueil suit. Elle s'appelle *Consoles* quand elle ne contient que des consoles, *Appareils* sinon. Les tuiles sont rangées par numéro de prise et indiquent « HDMI n ». OK sur une tuile bascule la TV sur cette prise.
+
+Les types proposés sont définis dans `HdmiPorts.Kinds` (`native/src/QuietHome.Core/HdmiPorts.cs`). La prise n correspond à l'identifiant de source `12 + n` passé à `connect_source` (13 = HDMI 1 sur les modèles testés). Pour vérifier : Diagnostic → *Tester HDMI 1…4*.
 
 ## Thème automatique
 
@@ -53,7 +69,7 @@ La météo ne s'active que si vous indiquez un lieu, dans `.local/quiethome.json
 ## Logos et couleurs des marques
 
 - **Couleurs et correspondance libellé → logo** : `Themes.Brands`, dans `native/src/QuietHome.Core/Themes.cs`.
-- **Logos** : `native/tools/fetch_marks.py` télécharge les SVG depuis Simple Icons v13.21.0 (CC0) et Custom Brand Icons (MIT), puis `native/tools/render_marks.py <chrome.exe>` les convertit en PNG blancs dans `native/res/icons/`. L'app les colore au moment de l'affichage.
+- **Logos** : `native/tools/fetch_marks.py` télécharge les SVG depuis Simple Icons v13.21.0 (CC0) et Custom Brand Icons (MIT), puis `native/tools/render_marks.py <chrome.exe>` les convertit en PNG blancs dans `native/res/icons/`, à leur taille d'affichage exacte : `<nom>.png` pour les cartes, `<nom>-hdmi.png` pour les tuiles d'appareils. L'app les colore au moment de l'affichage.
 - Une marque sans logo disponible garde sa couleur et affiche son nom. C'est le cas de Free TV, CANAL+ et ARTE.
 
 ## Thèmes, fonds, polices
@@ -62,7 +78,7 @@ La météo ne s'active que si vous indiquez un lieu, dans `.local/quiethome.json
 |---|---|
 | Palettes des 5 thèmes | `Themes.All`, dans `Themes.cs` |
 | Fonds bois 4K (Kuri, Chêne fumé) | `native/tools/make_wallpaper.py <chrome.exe>` : veinage procédural, voile de lisibilité intégré |
-| Pictogrammes (apps, réglages, thème, météo) et logo de l'app | `native/tools/make_icons.py` |
+| Pictogrammes (apps, réglages, thème, météo, appareils) et logo de l'app | `native/tools/make_icons.py`, à leur taille d'affichage exacte |
 | Sons du curseur (Goutte, Bois, Kalimba) | `native/tools/make_sounds.py` : sinusoïdes pures, courtes (0,11 à 0,15 s), attaque arrondie, niveau bas |
 | Police DM Sans (OFL) | `native/tools/fetch_fonts.py`, enregistrée au démarrage via `FontClient.AddCustomFontDirectory` |
 | Rendus de l'accueil (5 thèmes), de la grille, des réglages et de la veille | `native/tools/make_preview_kuri.py`, puis capture avec Chrome headless |

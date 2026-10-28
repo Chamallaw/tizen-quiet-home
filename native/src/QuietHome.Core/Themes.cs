@@ -102,6 +102,7 @@ namespace QuietHome.Core
             new Brand("apple tv", "appletv", "#2c2c2e", "#000000"),
             new Brand("xbox", "xbox", "#107c10", "#0a3d0a"),
             new Brand("geforce", "nvidia", "#1f1f1f", "#000000", "#76b900"),
+            new Brand("shield", "nvidia", "#1f1f1f", "#000000", "#76b900"),
             // Pas de logo libre disponible : le nom s'affiche sur le rouge Free.
             new Brand("free tv", "freetv", "#cd1e25", "#5e0b10"),
         };

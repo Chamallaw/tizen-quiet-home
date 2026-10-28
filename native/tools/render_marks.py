@@ -1,10 +1,13 @@
-"""Rastérise les logos SVG (res/marks-src) en PNG blancs recadrés (res/icons/<nom>.png).
+"""Rastérise les logos SVG (res/marks-src) en PNG blancs, à leur taille d'affichage exacte.
 
     python -I render_marks.py <chrome.exe> [res_dir]
 
-Chrome headless dessine chaque logo en blanc sur fond transparent (masque CSS),
-puis l'image est recadrée sur ses pixels visibles : le launcher lit la taille du PNG
-pour respecter le rapport largeur/hauteur. La couleur est appliquée à l'exécution (teinte NUI).
+Chrome headless dessine chaque logo en blanc sur fond transparent (masque CSS). Un premier rendu
+à 512 px donne le cadre visible du logo ; le logo est ensuite redessiné en vectoriel, directement
+aux pixels de l'écran 1920x1080 de la TV, pour chaque gabarit de TileView :
+    res/icons/<nom>.png        cartes et grille (boîte 0,56 × 202 sur 0,46 × 130)
+    res/icons/<nom>-hdmi.png   tuiles d'appareils HDMI (boîte 0,50 × 202 sur 0,38 × 104)
+Aucune réduction à l'affichage : les logos restent nets. La couleur est appliquée par l'app (teinte NUI).
 """
 import base64
 import pathlib
@@ -63,12 +66,31 @@ def write_png(path, w, h, rows):
     pathlib.Path(path).write_bytes(png)
 
 
-def trim(w, h, rows, pad=4):
+def bounds(w, h, rows):
+    """Cadre (x0, y0, x1, y1) des pixels visibles."""
     ys = [y for y in range(h) if any(rows[y][x * 4 + 3] for x in range(w))]
     xs = [x for x in range(w) if any(rows[y][x * 4 + 3] for y in ys)]
-    x0, x1 = max(0, min(xs) - pad), min(w, max(xs) + 1 + pad)
-    y0, y1 = max(0, min(ys) - pad), min(h, max(ys) + 1 + pad)
-    return x1 - x0, y1 - y0, [r[x0 * 4:x1 * 4] for r in rows[y0:y1]]
+    return min(xs), min(ys), max(xs) + 1, max(ys) + 1
+
+
+# Gabarits de TileView : suffixe du fichier, boîte maximale du logo en pixels.
+BOXES = (("", 202 * 0.56, 130 * 0.46), ("-hdmi", 202 * 0.50, 104 * 0.38))
+
+
+def shoot(chrome, tmp, name, uri, size, left, top, w, h):
+    """Dessine le SVG en size × size, décalé de (left, top) ; l'appelant garde le coin w × h
+    (fenêtre d'au moins 500 × 400 : Chrome headless bloque sur les très petites fenêtres)."""
+    page = tmp / f"{name}.html"
+    page.write_text(
+        "<!doctype html><html><body style='margin:0;background:transparent;overflow:hidden'>"
+        f"<div style='position:absolute;left:{left}px;top:{top}px;width:{size}px;height:{size}px;background:#fff;"
+        f"-webkit-mask:url({uri}) center/contain no-repeat'></div></body></html>", encoding="utf-8")
+    shot = tmp / f"{name}.png"
+    subprocess.run([chrome, "--headless=new", "--disable-gpu", "--hide-scrollbars",
+                    f"--user-data-dir={tmp / 'profile'}", "--default-background-color=00000000",
+                    f"--window-size={max(w, 500)},{max(h, 400)}", f"--screenshot={shot}", page.as_uri()],
+                   check=True, capture_output=True, timeout=60)
+    return read_png_rgba(shot)
 
 
 def main(chrome, res):
@@ -79,20 +101,14 @@ def main(chrome, res):
         tmp = pathlib.Path(tmp)
         for svg in sorted(src.glob("*.svg")):
             uri = "data:image/svg+xml;base64," + base64.b64encode(svg.read_bytes()).decode()
-            page = tmp / f"{svg.stem}.html"
-            page.write_text(
-                "<!doctype html><html><body style='margin:0;background:transparent'>"
-                f"<div style='width:{SIZE}px;height:{SIZE}px;background:#fff;"
-                f"-webkit-mask:url({uri}) center/contain no-repeat'></div></body></html>",
-                encoding="utf-8")
-            shot = tmp / f"{svg.stem}.png"
-            subprocess.run([chrome, "--headless=new", "--disable-gpu", "--hide-scrollbars",
-                            f"--user-data-dir={tmp / 'profile'}", "--default-background-color=00000000",
-                            f"--window-size={SIZE},{SIZE}", f"--screenshot={shot}", page.as_uri()],
-                           check=True, capture_output=True, timeout=60)
-            w, h, rows = trim(*read_png_rgba(shot))
-            write_png(out / f"{svg.stem}.png", w, h, rows)
-            print(f"{svg.stem}.png  {w}x{h}")
+            x0, y0, x1, y1 = bounds(*shoot(chrome, tmp, svg.stem, uri, SIZE, 0, 0, SIZE, SIZE))
+            for suffix, box_w, box_h in BOXES:
+                k = min(box_w / (x1 - x0), box_h / (y1 - y0))
+                w, h = max(1, round((x1 - x0) * k)), max(1, round((y1 - y0) * k))
+                img_w, img_h, rows = shoot(chrome, tmp, svg.stem + suffix, uri, SIZE * k, -x0 * k, -y0 * k, w, h)
+                rows = [r[:w * 4] for r in rows[:h]]
+                write_png(out / f"{svg.stem}{suffix}.png", w, h, rows)
+                print(f"{svg.stem}{suffix}.png  {w}x{h}")
 
 
 if __name__ == "__main__":

@@ -49,8 +49,8 @@ namespace QuietHome.Core
                 // connect_source : 13 = HDMI 1 … 16 = HDMI 4 (relevé sur U8000F, à confirmer sur la QN700B).
                 Inputs = new List<InputSpec>
                 {
-                    new InputSpec("PS5", 14),
-                    new InputSpec("Switch", 16),
+                    new InputSpec("PS5", 14, "playstation") { Kind = "ps5" },
+                    new InputSpec("Switch", 16, "nintendoswitch") { Kind = "switch" },
                 },
                 // Vide : les logs UDP partent vers le PC déclaré dans le mode développeur de la TV (s'il est actif).
                 DevLogHost = "",
