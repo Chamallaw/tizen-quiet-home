@@ -252,6 +252,11 @@ def main(out_dir=None):
     day = home_page("hinoki", "10:24", "Bonjour", start=9, first_local_hour=10)
     (out_dir / "accueil-hinoki.html").write_text(day, encoding="utf-8")
     print(out_dir / "accueil-hinoki.html")
+    # Les autres thèmes : sombres le soir, clairs le jour, comme avec le thème automatique.
+    for theme_id, dark in (("fume", True), ("sumi", True), ("japandi", False)):
+        page = home_page(theme_id, "21:47", "Bonsoir", 20, 21) if dark else home_page(theme_id, "10:24", "Bonjour", 9, 10)
+        (out_dir / f"accueil-{theme_id}.html").write_text(page, encoding="utf-8")
+        print(out_dir / f"accueil-{theme_id}.html")
     (out_dir / "accueil-kuri-reglages.html").write_text(
         home_page("kuri", "21:47", "Bonsoir", start=20, first_local_hour=21, focus_settings=True), encoding="utf-8")
     head = night.split("<body>")[0].replace("</style>", """
