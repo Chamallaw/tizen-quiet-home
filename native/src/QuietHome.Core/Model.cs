@@ -79,11 +79,13 @@ namespace QuietHome.Core
         /// v2 : refonte Japandi (favoris, consoles, thèmes) ; une config v1 est remplacée par les défauts.
         /// v3 : ajout de Free TV aux favoris, sans toucher au reste.
         /// v4 : ajout de YouTube (TizenTube sideloadé) juste après Netflix.
+        /// v5 : thème automatique ; le thème choisi devient celui de son moment (jour s'il est clair, soir sinon).
         /// </summary>
-        public const int CurrentVersion = 4;
+        public const int CurrentVersion = 5;
 
         [DataMember(Order = 1)] public int Version = CurrentVersion;
-        [DataMember(Order = 2)] public string Theme = "kuri";
+        /// <summary>Identifiant d'un thème, ou « auto » : DayTheme le jour, NightTheme le soir.</summary>
+        [DataMember(Order = 2)] public string Theme = Themes.Auto;
         /// <summary>Chemin absolu d'une image de fond ; vide = dégradé du thème.</summary>
         [DataMember(Order = 3)] public string Wallpaper = "";
         [DataMember(Order = 4)] public List<PinSpec> Pinned = new List<PinSpec>();
@@ -105,7 +107,33 @@ namespace QuietHome.Core
         [DataMember(Order = 16)] public int AmbientMinutes = 5;
         /// <summary>Bouton Home de la télécommande : « quiethome » (ramène Quiet Home) ou « samsung ».</summary>
         [DataMember(Order = 17)] public string HomeKey = HomeKeyQuietHome;
+        [DataMember(Order = 18)] public string DayTheme = "hinoki";
+        [DataMember(Order = 19)] public string NightTheme = "kuri";
+        /// <summary>
+        /// Lieu de la météo et du lever/coucher du soleil (thème automatique). Fourni au build par res/local.json,
+        /// tiré de .local/quiethome.json (jamais publié) ; absent = pas de météo, thème de 7 h à 19 h.
+        /// </summary>
+        [DataMember(Order = 20)] public string Place = "";
+        [DataMember(Order = 21)] public double? Latitude;
+        [DataMember(Order = 22)] public double? Longitude;
+        /// <summary>Bandeau météo des prochaines 24 h : « on » ou « off ».</summary>
+        [DataMember(Order = 23)] public string Weather = WeatherOn;
 
         public const string HomeKeyQuietHome = "quiethome", HomeKeySamsung = "samsung";
+        public const string WeatherOn = "on", WeatherOff = "off";
+
+        public bool HasPlace => Latitude.HasValue && Longitude.HasValue;
+    }
+
+    /// <summary>
+    /// Réglages propres à une installation, embarqués au build dans res/local.json : ils l'emportent
+    /// sur la configuration enregistrée à chaque chargement.
+    /// </summary>
+    [DataContract]
+    public sealed class LocalOverrides
+    {
+        [DataMember(Order = 1)] public string Place;
+        [DataMember(Order = 2)] public double? Latitude;
+        [DataMember(Order = 3)] public double? Longitude;
     }
 }

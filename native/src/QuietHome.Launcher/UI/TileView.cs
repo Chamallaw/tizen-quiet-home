@@ -40,7 +40,7 @@ namespace QuietHome.UI
         /// <summary>Durée et courbe communes à toutes les transitions de focus.</summary>
         public const int FocusMs = 220;
         public static AlphaFunction Ease() => new AlphaFunction(AlphaFunction.BuiltinFunctions.EaseOutSine);
-        const float Lift = 8;
+        const float Lift = 8, GlyphSize = 40;
 
         public TileView(Tile tile, TileStyle style, Palette palette)
         {
@@ -51,17 +51,26 @@ namespace QuietHome.UI
 
             if (style.Round)
             {
+                // Bouton discret : pictogramme au trait, sans pastille, en retrait ; au focus il s'éclaircit
+                // et le même trait que sous les tuiles apparaît dessous.
                 Size = new Size(style.W, style.H);
-                CornerRadius = style.H / 2;
-                BackgroundColor = palette.Button;
                 glyph = new ImageView
                 {
                     ResourceUrl = icon ?? "",
-                    Size = new Size(44, 44),
-                    Position = new Position((style.W - 44) / 2, (style.H - 44) / 2),
-                    Color = palette.Text,   // pictogramme blanc multiplié par la couleur du thème
+                    Size = new Size(GlyphSize, GlyphSize),
+                    Position = new Position((style.W - GlyphSize) / 2, (style.H - GlyphSize) / 2),
+                    Color = palette.Muted,   // pictogramme blanc multiplié par la couleur du thème
                 };
                 Add(glyph);
+                marker = new View
+                {
+                    Size = new Size(28, 3),
+                    Position = new Position((style.W - 28) / 2, style.H - 8),
+                    CornerRadius = 2,
+                    BackgroundColor = palette.Marker,
+                    Opacity = 0,
+                };
+                Add(marker);
                 return;
             }
 
@@ -173,9 +182,9 @@ namespace QuietHome.UI
 
             if (style.Round)
             {
-                BackgroundColor = focused ? palette.Accent : palette.Button;
-                glyph.Color = focused ? palette.AccentText : palette.Text;
-                To(this, "Scale", focused ? new Vector3(1.08f, 1.08f, 1f) : Vector3.One);
+                glyph.Color = focused ? palette.Text : palette.Muted;
+                To(glyph, "Scale", focused ? new Vector3(1.12f, 1.12f, 1f) : Vector3.One);
+                To(marker, "Opacity", focused ? 1f : 0f);
                 anim?.Play();
                 return;
             }

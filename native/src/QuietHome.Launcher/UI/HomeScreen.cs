@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading.Tasks;
 using QuietHome.Core;
 using QuietHome.Platform;
 using Tizen.NUI;
@@ -39,6 +40,8 @@ namespace QuietHome.UI
         readonly object redirectLock = new object();
         int watching;
         string lastForeground;
+        // Dernière app vue au premier plan (hors Quiet Home et accueil Samsung) : la sélection y revient au retour.
+        volatile string lastApp;
 
         LauncherConfig config;
         Palette palette;
@@ -55,17 +58,30 @@ namespace QuietHome.UI
         Timer toastTimer, longPressTimer, clockTimer, idleTimer, probeTimer;
         DateTime lastInput = DateTime.Now;
         string appsSignature = "";
+        Animation themeFade;
 
-        public HomeScreen(Window window, ConfigStore store, AppService apps, string selfAppId)
+        // Météo : bandeau des prochaines 24 h sous les rangées ; une requête par heure au plus.
+        const float WeatherTop = 880, WeatherIconSize = 30;
+        static readonly TimeSpan WeatherEvery = TimeSpan.FromMinutes(60), WeatherRetry = TimeSpan.FromMinutes(10);
+        readonly WeatherService weather;
+        readonly View weatherStrip;
+        readonly List<TextLabel> weatherHours = new List<TextLabel>(), weatherTemps = new List<TextLabel>();
+        readonly List<ImageView> weatherIcons = new List<ImageView>();
+        List<HourForecast> forecast = new List<HourForecast>();
+        DateTime weatherTried = DateTime.MinValue;
+        bool weatherBusy, rowsLeaveRoom = true;
+
+        public HomeScreen(Window window, ConfigStore store, AppService apps, WeatherService weather, string selfAppId)
         {
             this.window = window;
             this.store = store;
             this.apps = apps;
+            this.weather = weather;
             this.selfAppId = selfAppId;
             redirect = new HomeRedirect(selfAppId);
             config = store.Load();
             if (store.LastError != null) Log.Warn("config : " + store.LastError);
-            palette = new Palette(Themes.Get(config.Theme));
+            palette = new Palette(Themes.Resolve(config, DateTimeOffset.Now));
 
             float scale = window.WindowSize.Width / RefW;
             root = new View { Size = new Size(RefW, RefH), Scale = new Vector3(scale, scale, 1f),
@@ -103,13 +119,34 @@ namespace QuietHome.UI
                 HorizontalAlignment = HorizontalAlignment.End };
             root.Add(toast);
 
+            // Bandeau météo : 24 colonnes (heure, pictogramme, température) créées une fois, puis mises à jour.
+            weatherStrip = new View { Position = new Position(MarginX, WeatherTop), Size = new Size(RefW - 2 * MarginX, 110) };
+            float cell = (RefW - 2 * MarginX) / Weather.ShownHours;
+            for (int i = 0; i < Weather.ShownHours; i++)
+            {
+                var hour = new TextLabel { Position = new Position(i * cell, 0), Size = new Size(cell, 30), PointSize = 13,
+                    HorizontalAlignment = HorizontalAlignment.Center, FontFamily = Palette.Font("regular") };
+                var icon = new ImageView { Position = new Position(i * cell + (cell - WeatherIconSize) / 2, 38),
+                    Size = new Size(WeatherIconSize, WeatherIconSize), DesiredWidth = 64, DesiredHeight = 64 };
+                var temp = new TextLabel { Position = new Position(i * cell, 76), Size = new Size(cell, 34), PointSize = 16,
+                    HorizontalAlignment = HorizontalAlignment.Center, FontFamily = Palette.Font("light") };
+                weatherStrip.Add(hour);
+                weatherStrip.Add(icon);
+                weatherStrip.Add(temp);
+                weatherHours.Add(hour);
+                weatherIcons.Add(icon);
+                weatherTemps.Add(temp);
+            }
+            weatherStrip.Hide();
+            root.Add(weatherStrip);
+
             focus.HomeRowId = Catalog.RowFavorites;
             ApplyTheme();
             UpdateClock();
             // Premier tick calé sur le changement de minute, puis une fois par minute.
             var now = DateTime.Now;
             clockTimer = new Timer((uint)Math.Max(1000, 60000 - now.Second * 1000 - now.Millisecond + 50));
-            clockTimer.Tick += (s, e) => { UpdateClock(); clockTimer.Interval = 60000; return true; };
+            clockTimer.Tick += (s, e) => { OnMinute(); clockTimer.Interval = 60000; return true; };
             clockTimer.Start();
             idleTimer = new Timer(30000);
             idleTimer.Tick += (s, e) => { CheckIdle(); return true; };
@@ -118,6 +155,7 @@ namespace QuietHome.UI
             homeWatch = new System.Threading.Timer(_ => WatchHomeKey(), null, 2000, 1000);
 
             Rebuild();
+            StartWeather();
         }
 
         // ---------- données ----------
@@ -155,7 +193,7 @@ namespace QuietHome.UI
 
         void ApplyTheme()
         {
-            palette = new Palette(Themes.Get(config.Theme));
+            palette = new Palette(Themes.Resolve(config, DateTimeOffset.Now));
             window.BackgroundColor = Palette.C(palette.Spec.BackgroundTo);
             background.Background = palette.BackgroundVisual();
             // Fond choisi dans la config, sinon celui du thème.
@@ -229,6 +267,9 @@ namespace QuietHome.UI
                 rowStyles.Add(style);
                 y += height + RowGap;
             }
+            // Le bandeau météo ne s'affiche que si les rangées lui laissent la place (bibliothèque masquée).
+            rowsLeaveRoom = RowsTop + y - RowGap <= WeatherTop - 40;
+            UpdateWeather();
             ApplyFocus(false);
         }
 
@@ -273,6 +314,43 @@ namespace QuietHome.UI
             date.Text = now.ToString("dddd d MMMM", Fr) + "  ·  <color value='" + palette.Spec.Marker + "'>"
                 + Themes.Greeting(now.Hour) + "</color>";
             if (ambient != null) UpdateAmbient(now, true);
+        }
+
+        /// <summary>Chaque minute : thème du moment, heure, et à chaque heure pleine le bandeau météo.</summary>
+        void OnMinute()
+        {
+            CheckAutoTheme(true);
+            UpdateClock();
+            if (DateTime.Now.Minute == 0) UpdateWeather();
+            RefreshWeather();
+        }
+
+        /// <summary>Thème automatique : bascule au lever ou au coucher du soleil, en fondu si l'accueil est affiché.</summary>
+        void CheckAutoTheme(bool fade)
+        {
+            if (config.Theme != Themes.Auto || themeFade != null) return;
+            var target = Themes.Resolve(config, DateTimeOffset.Now);
+            if (target.Id == palette.Spec.Id) return;
+            Log.Info("thème automatique : " + target.Name);
+            if (!fade || !Visible || ambient != null)
+            {
+                ApplyTheme();
+                Rebuild();
+                return;
+            }
+            themeFade = new Animation(600) { DefaultAlphaFunction = TileView.Ease() };
+            themeFade.AnimateTo(root, "Opacity", 0f);
+            themeFade.Finished += (s, e) =>
+            {
+                ApplyTheme();
+                UpdateClock();
+                Rebuild();
+                themeFade = new Animation(900) { DefaultAlphaFunction = TileView.Ease() };
+                themeFade.AnimateTo(root, "Opacity", 1f);
+                themeFade.Finished += (s2, e2) => themeFade = null;
+                themeFade.Play();
+            };
+            themeFade.Play();
         }
 
         void Toast(string message)
@@ -413,6 +491,17 @@ namespace QuietHome.UI
             ApplyFocus(false);
         }
 
+        /// <summary>Retour sur Quiet Home (bouton Home, barre Apps) : la sélection reprend sur l'app qu'on vient de quitter.</summary>
+        public void ReturnFocus()
+        {
+            overlay?.Close();
+            moving = false;
+            focus.Reset();
+            var app = lastApp;
+            if (app != null) focus.FocusTile(t => t.Kind == TileKind.App && !t.Missing && t.AppId == app);
+            ApplyFocus(false);
+        }
+
         // ---------- actions ----------
 
         void Activate(Tile tile)
@@ -494,6 +583,7 @@ namespace QuietHome.UI
                 if (foreground != lastForeground)
                 {
                     lastForeground = foreground;
+                    if (foreground != null && foreground != selfAppId && foreground != HomeRedirect.SamsungHome) lastApp = foreground;
                     Log.Info("premier plan → " + (foreground ?? "(aucune)"));
                 }
                 if (launch)
@@ -512,13 +602,107 @@ namespace QuietHome.UI
             }
         }
 
+        // ---------- météo ----------
+
+        /// <summary>
+        /// Bandeau météo : l'heure en cours et les 23 suivantes. Masqué sans lieu, s'il est désactivé,
+        /// si les rangées occupent la place ou s'il manque des heures (aucune réponse depuis un jour).
+        /// </summary>
+        void UpdateWeather()
+        {
+            var hours = Weather.Upcoming(forecast, DateTime.UtcNow);
+            if (!config.HasPlace || config.Weather != LauncherConfig.WeatherOn || !rowsLeaveRoom || hours.Count < Weather.ShownHours)
+            {
+                weatherStrip.Hide();
+                return;
+            }
+            for (int i = 0; i < hours.Count; i++)
+            {
+                var local = hours[i].Utc.ToLocalTime();
+                weatherHours[i].Text = Weather.HourLabel(local, i == 0, Fr);
+                // Maintenant en clair, minuit (jour abrégé) à la couleur d'accent, le reste en retrait.
+                weatherHours[i].TextColor = i == 0 ? palette.Text : local.Hour == 0 ? palette.Marker : palette.Muted;
+                var icon = TileView.Resolve(Catalog.ResPrefix + "icons/" + Weather.Icon(hours[i].Code, hours[i].IsDay) + ".png") ?? "";
+                if (weatherIcons[i].ResourceUrl != icon) weatherIcons[i].ResourceUrl = icon;
+                weatherIcons[i].Color = palette.Text;
+                weatherTemps[i].Text = Weather.Degrees(hours[i].Temperature);
+                weatherTemps[i].TextColor = palette.Text;
+            }
+            weatherStrip.Show();
+        }
+
+        /// <summary>Au démarrage : les prévisions du cache tout de suite, puis une requête si elles datent.</summary>
+        async void StartWeather()
+        {
+            if (!config.HasPlace) return;
+            double lat = config.Latitude.Value, lon = config.Longitude.Value;
+            try
+            {
+                var cached = await Task.Run(() => weather.LoadCache(lat, lon));
+                if (cached != null && forecast.Count == 0)
+                {
+                    forecast = cached;
+                    UpdateWeather();
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error("météo au démarrage", e);
+            }
+            RefreshWeather();
+        }
+
+        /// <summary>Nouvelle requête si la dernière réponse a plus d'une heure (10 min après un échec), hors du fil NUI.</summary>
+        async void RefreshWeather()
+        {
+            if (!config.HasPlace || config.Weather != LauncherConfig.WeatherOn || weatherBusy) return;
+            var now = DateTime.UtcNow;
+            if (now - weather.FetchedUtc < WeatherEvery || now - weatherTried < WeatherRetry) return;
+            weatherBusy = true;
+            weatherTried = now;
+            double lat = config.Latitude.Value, lon = config.Longitude.Value;
+            try
+            {
+                var hours = await Task.Run(() => weather.Fetch(lat, lon));
+                if (hours != null)
+                {
+                    forecast = hours;
+                    UpdateWeather();
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error("météo", e);
+            }
+            finally
+            {
+                weatherBusy = false;
+            }
+        }
+
         // ---------- mode ambiant ----------
 
-        /// <summary>Appelé au retour au premier plan : pas de mode ambiant hérité de l'arrière-plan.</summary>
+        /// <summary>
+        /// Appelé au retour au premier plan : pas de mode ambiant hérité de l'arrière-plan ;
+        /// thème, heure et météo remis à jour (les minuteries NUI dorment en arrière-plan).
+        /// </summary>
         public void Wake()
         {
             lastInput = DateTime.Now;
             ExitAmbient();
+            if (themeFade != null)
+            {
+                // Fondu interrompu par la mise en arrière-plan : on le termine sans animation.
+                themeFade.Stop();
+                themeFade = null;
+                root.Opacity = 1;
+                ApplyTheme();
+                Rebuild();
+            }
+            CheckAutoTheme(false);
+            UpdateClock();
+            UpdateWeather();
+            RefreshWeather();
         }
 
         /// <summary>Premier plan / arrière-plan, signalé par l'application.</summary>
@@ -545,7 +729,9 @@ namespace QuietHome.UI
             var linen = Palette.C("#ece3d4");
             ambient = new View { Size = new Size(RefW, RefH), BackgroundColor = Palette.C("#0d0a08"), Opacity = 0 };
 
-            var wall = TileView.Resolve(!string.IsNullOrEmpty(config.Wallpaper) ? config.Wallpaper : palette.Spec.Wallpaper);
+            // Thème clair sans mur (le jour) : le mur du thème du soir, l'écran de veille restant sombre.
+            var wall = TileView.Resolve(!string.IsNullOrEmpty(config.Wallpaper) ? config.Wallpaper
+                : !string.IsNullOrEmpty(palette.Spec.Wallpaper) ? palette.Spec.Wallpaper : Themes.Get(config.NightTheme).Wallpaper);
             if (wall != null)
             {
                 var image = new ImageView
@@ -725,13 +911,14 @@ namespace QuietHome.UI
             ApplyTheme();
             UpdateClock();
             Rebuild();
-            Toast(saved ? palette.Name : palette.Name + " (non sauvegardé)");
+            var name = Themes.Describe(config);
+            Toast(saved ? name : name + " (non sauvegardé)");
         }
 
-        /// <summary>Panneau de la tuile Réglages : son, paramètres Samsung, récupération.</summary>
+        /// <summary>Panneau de la tuile Réglages : son, bouton Home, météo, paramètres Samsung, récupération.</summary>
         void ShowSettings(int selection)
         {
-            ShowOverlay("Réglages", new List<OverlayMenu.Item>
+            var items = new List<OverlayMenu.Item>
             {
                 new OverlayMenu.Item("Volume −", () => Toast(TvControls.ChangeVolume(-2)), keepOpen: true),
                 new OverlayMenu.Item("Volume +", () => Toast(TvControls.ChangeVolume(+2)), keepOpen: true),
@@ -744,9 +931,23 @@ namespace QuietHome.UI
                     UpdateConfig(next);
                     ShowSettings(3); // rouvert sur la même ligne, libellé à jour
                 }),
-                new OverlayMenu.Item("Paramètres de la TV", () => OpenSettings(null)),
-                new OverlayMenu.Item("Récupération", ShowRecovery),
-            }, selection);
+            };
+            if (config.HasPlace)
+            {
+                bool on = config.Weather == LauncherConfig.WeatherOn;
+                items.Add(new OverlayMenu.Item(on ? "Météo : affichée" + (string.IsNullOrEmpty(config.Place) ? "" : " (" + config.Place + ")")
+                    : "Météo : masquée", () =>
+                {
+                    var next = ConfigStore.Clone(config);
+                    next.Weather = on ? LauncherConfig.WeatherOff : LauncherConfig.WeatherOn;
+                    UpdateConfig(next);
+                    RefreshWeather();
+                    ShowSettings(4);
+                }));
+            }
+            items.Add(new OverlayMenu.Item("Paramètres de la TV", () => OpenSettings(null)));
+            items.Add(new OverlayMenu.Item("Récupération", ShowRecovery));
+            ShowOverlay("Réglages", items, selection);
         }
 
         void ShowRecovery()
@@ -783,6 +984,10 @@ namespace QuietHome.UI
                 new OverlayMenu.Item("Tester Volume +", () => Toast(TvControls.ChangeVolume(+1)), keepOpen: true),
                 new OverlayMenu.Item("Config : " + store.Path),
                 new OverlayMenu.Item("Fenêtre : " + window.WindowSize.Width + "x" + window.WindowSize.Height),
+                new OverlayMenu.Item("Thème : " + Themes.Describe(config) + " → " + palette.Name),
+                new OverlayMenu.Item(!config.HasPlace ? "Météo : aucun lieu (.local/quiethome.json)"
+                    : "Météo : " + config.Place + " · " + (weather.FetchedUtc == DateTime.MinValue ? "pas encore reçue"
+                        : "reçue à " + weather.FetchedUtc.ToLocalTime().ToString("HH:mm", Fr))),
                 new OverlayMenu.Item("— Apps installées (id) —"),
             };
             items.AddRange(installed.OrderBy(a => a.Id).Select(a => new OverlayMenu.Item((a.NoDisplay ? "[caché] " : "") + a.Id + "  " + a.Label)));

@@ -2,6 +2,8 @@
 
 # Quiet Home pour Samsung Tizen
 
+[![Tests](https://github.com/Chamallaw/tizen-quiet-home/actions/workflows/ci.yml/badge.svg)](https://github.com/Chamallaw/tizen-quiet-home/actions/workflows/ci.yml)
+
 **Un écran d'accueil natif, calme et sans publicité pour les TV Samsung**, inspiré du design Japandi : mur de bois sombre, typographie fine, logos officiels des apps, consoles en un clic. Le **bouton Home de la télécommande y ramène directement**, sans root et sans modifier le système de la TV.
 
 ![Accueil, thème Kuri](docs/images/accueil.png)
@@ -13,9 +15,11 @@
 - **Accueil épuré** :
   - vos apps favorites avec leurs logos et couleurs officiels (Netflix, YouTube, Jellyfin, Spotify, Prime Video, Disney+…) ;
   - vos consoles en HDMI ;
-  - l'heure, la date et une salutation.
-- **Bouton Home → Quiet Home**, depuis n'importe quelle app, en moins d'une seconde. **Deux appuis rapides** ouvrent l'accueil Samsung : le Smart Hub et les paramètres restent toujours accessibles. Voir [docs/home-button.md](docs/home-button.md).
-- **5 thèmes**, mémorisés :
+  - l'heure, la date et une salutation ;
+  - en option, la météo des prochaines 24 h, heure par heure.
+- **Bouton Home → Quiet Home**, depuis n'importe quelle app, en moins d'une seconde. La sélection reprend sur l'app qu'on vient de quitter. **Deux appuis rapides** ouvrent l'accueil Samsung : le Smart Hub et les paramètres restent toujours accessibles. Voir [docs/home-button.md](docs/home-button.md).
+- **Thème automatique** : Hinoki le jour, Kuri le soir. La bascule suit le lever et le coucher du soleil.
+- **5 thèmes** au choix, mémorisés :
   - Kuri (noyer) et Chêne fumé, avec un fond bois en 4K ;
   - Japandi, Sumi et Hinoki, en dégradés.
 - **« Toutes les apps »** : une grille de toutes les apps installées ; maintenir OK sur une app l'ajoute aux favoris ou l'en retire.
@@ -26,15 +30,16 @@
   - transitions animées.
 - **Récupération toujours accessible** : accueil Samsung, paramètres TV, réinitialisation, diagnostic (tests HDMI et volume, identification des touches).
 
-| Toutes les apps | Écran de veille |
-|---|---|
-| ![](docs/images/toutes-les-apps.png) | ![](docs/images/ecran-de-veille.png) |
+| Le jour (thème automatique) | Toutes les apps | Écran de veille |
+|---|---|---|
+| ![](docs/images/accueil-jour.png) | ![](docs/images/toutes-les-apps.png) | ![](docs/images/ecran-de-veille.png) |
 
 ## Principes
 
 - **Une app normale** (`.tpk` signé avec votre propre certificat Samsung), installée en mode développeur. Pas de root, pas de faille, aucune réécriture de réglages système.
 - **Réversible** : désinstaller l'app remet la TV exactement dans son état d'origine.
-- **Aucune donnée envoyée sur Internet.** Le seul trafic réseau est l'envoi des logs au PC de développement, sur le réseau local, et seulement quand le mode développeur est actif.
+- **Rien n'est envoyé sur Internet par défaut.** Le seul trafic réseau est l'envoi des logs au PC de développement, sur le réseau local, et seulement quand le mode développeur est actif.
+- **La météo est facultative.** Elle s'active seulement si vous indiquez un lieu ([docs/customize.md](docs/customize.md#météo)). Quiet Home interroge alors [Open-Meteo](https://open-meteo.com) une fois par heure, avec les coordonnées de ce lieu, sans compte ni identifiant.
 
 ## Compatibilité
 
@@ -66,7 +71,8 @@ En résumé, une fois la TV en mode développeur et le certificat Samsung créé
 | [docs/install.md](docs/install.md) | Installation pas à pas, démarrage automatique, logs |
 | [docs/agent.md](docs/agent.md) | Faire l'installation et les réglages avec un agent |
 | [docs/home-button.md](docs/home-button.md) | Le raccourci bouton Home : fonctionnement, limites, désactivation |
-| [docs/customize.md](docs/customize.md) | Favoris, consoles HDMI, logos, thèmes, fonds, polices |
+| [docs/customize.md](docs/customize.md) | Favoris, consoles HDMI, logos, thèmes, météo, fonds, polices |
+| [CHANGELOG.md](CHANGELOG.md) | Journal des versions |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Dépannage et retour à l'état d'origine |
 | [native/README.md](native/README.md) | Référence technique : architecture, plan de tests |
 | [docs/research/](docs/research/) | Recherche initiale (quiet-tizen, Fresh Home, Skylight…) |
@@ -76,7 +82,7 @@ En résumé, une fois la TV en mode développeur et le certificat Samsung créé
 
 ```
 native/
-  src/QuietHome.Core/      logique pure (config, catalogue, focus, thèmes, bouton Home), testée sur PC
+  src/QuietHome.Core/      logique pure (config, catalogue, focus, thèmes, soleil, météo, bouton Home), testée sur PC
   src/QuietHome.Launcher/  app NUI : écran d'accueil, grille, veille, plateforme Tizen
   tests/                   tests xUnit (dotnet test)
   res/                     logos, pictogrammes, fonds 4K, polices (prêts à l'emploi)
@@ -91,6 +97,7 @@ web/                       prototype Web App (historique)
 - [jss8649/quiet-tizen](https://github.com/jss8649/quiet-tizen) : l'idée d'un launcher natif .NET/NUI et les mécanismes natifs (sources, volume, paramètres).
 - [NelsonEU/arn0-tv](https://github.com/NelsonEU/arn0-tv) : les sources des logos et les couleurs des marques.
 - [SaudSatopay/skylight-tizen](https://github.com/SaudSatopay/skylight-tizen) : l'idée de revenir au launcher en observant l'écran plutôt qu'en interceptant la touche.
+- [Open-Meteo](https://open-meteo.com) : les prévisions météo (données sous licence CC BY 4.0).
 - [KSWORK2001/fresh-home](https://github.com/KSWORK2001/fresh-home), [gus-cardoso/quiet-tizen-qn90b](https://github.com/gus-cardoso/quiet-tizen-qn90b), [simbasjungles/free-my-tv](https://github.com/simbasjungles/free-my-tv).
 
 ## Licence
