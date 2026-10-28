@@ -6,7 +6,7 @@ Ce dépôt construit **Quiet Home**, un launcher natif .NET/NUI (`.tpk`) pour TV
 
 1. **Pas de modification du système.** Pas de root, pas d'exploit, pas d'écriture de clés vconf ni de bases système, pas de remplacement d'apps Samsung. Quiet Home reste une app ordinaire, entièrement réversible par désinstallation.
 2. **Les réglages de sécurité restent à l'utilisateur** : pare-feu, compte Samsung, certificats, droits administrateur. Donnez-lui la commande exacte et attendez sa confirmation.
-3. **Ne publiez pas de données personnelles** : DUID, MAC, IP, certificats (`%USERPROFILE%\SamsungCertificate`), contenu de `.local/`.
+3. **Ne publiez pas de données personnelles** : DUID, MAC, IP, certificats (`%USERPROFILE%\SamsungCertificate`), contenu de `.local/`. Le lieu de la météo est dans `.local/quiethome.json`, qui est embarqué dans le paquet mais jamais versionné.
 4. **Vérifiez sur la TV** avec les logs (UDP 5140) plutôt que de supposer. L'agent ne voit pas l'écran : demandez à l'utilisateur d'appuyer sur les touches et de décrire ce qu'il voit, ou générez un rendu.
 
 ## Faits établis (Tizen 6.5, QN700B 2022)
@@ -33,5 +33,7 @@ python -I native\tools\logs_listen.py <fichier> <minutes>
 
 - La logique testable va dans `QuietHome.Core` (netstandard2.0, sans Tizen), avec un test xUnit. Le code Tizen et l'interface vont dans `QuietHome.Launcher`.
 - Tout changement des valeurs par défaut qui doit toucher les configurations déjà enregistrées passe par une **migration** : incrémentez `LauncherConfig.CurrentVersion` et ajoutez une branche dans `ConfigStore.Normalize`.
+- Le seul accès à Internet est la météo (Open-Meteo, HTTPS), active seulement si un lieu est indiqué. N'ajoutez pas d'autre service en ligne sans l'accord de l'utilisateur.
+- Les tests et la compilation tournent sur GitHub à chaque push (`.github/workflows/ci.yml`). Pour publier une version : ajoutez sa section dans `CHANGELOG.md`, puis poussez l'étiquette `vX.Y.Z` (`release.yml` crée la version GitHub avec ces notes).
 - Interface en coordonnées logiques 1920x1080, positionnement absolu, mise à l'échelle de la fenêtre.
 - Commentaires et textes de l'interface en français.

@@ -1,0 +1,41 @@
+# Publie une version GitHub quand une étiquette vX.Y.Z est poussée, avec les notes de CHANGELOG.md.
+# Aucun .tpk n'est joint : chaque TV signe son propre paquet (voir docs/install.md).
+name: Version
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_NOLOGO: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+
+jobs:
+  release:
+    name: Publier la version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+      - name: Tests du Core
+        run: dotnet test native/tests/QuietHome.Core.Tests
+      - name: Notes de version
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '
+            index($0, "## " v " ") == 1 || $0 == "## " v { on = 1; next }
+            /^## / { if (on) exit }
+            on' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "::error::Aucune section « ## $version » dans CHANGELOG.md"
+            exit 1
+          fi
+      - name: Créer la version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --verify-tag --title "Quiet Home ${GITHUB_REF_NAME#v}" --notes-file notes.md

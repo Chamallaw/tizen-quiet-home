@@ -28,7 +28,10 @@ namespace QuietHome.Core
                 // Épuré : la bibliothèque complète s'ouvre depuis « Toutes les apps ».
                 ShowLibrary = false,
                 Clock24h = true,
-                Theme = "kuri",
+                // Hinoki (clair) le jour, Kuri (noyer) le soir.
+                Theme = Themes.Auto,
+                DayTheme = "hinoki",
+                NightTheme = "kuri",
                 HiddenPrefixes = new List<string>
                 {
                     // Services système et notre propre paquet.

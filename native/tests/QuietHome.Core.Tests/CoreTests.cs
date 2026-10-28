@@ -204,6 +204,21 @@ public class FocusTests
     }
 
     [Fact]
+    public void Retour_sur_la_tuile_de_l_app_quittee()
+    {
+        var rows = Rows(2, 4, 2);
+        rows[1].Id = "home";
+        rows[1].Tiles[2].AppId = "disney";
+        var f = new FocusModel { HomeRowId = "home" };
+        f.SetRows(rows);
+        f.Reset();
+        Assert.True(f.FocusTile(t => t.AppId == "disney"));
+        Assert.Equal("1:2", f.Current.Key);
+        Assert.False(f.FocusTile(t => t.AppId == "absente"));
+        Assert.Equal("1:2", f.Current.Key);                 // focus inchangé
+    }
+
+    [Fact]
     public void Aucune_rangee_ne_plante_pas()
     {
         var f = new FocusModel();
@@ -243,7 +258,7 @@ public class ConfigStoreTests
         File.WriteAllText(path, "{pas du json");
         Assert.Equal("sumi", store.Load().Theme);
         File.WriteAllText(path + ".bak", "{");
-        Assert.Equal("kuri", store.Load().Theme);
+        Assert.Equal(Themes.Auto, store.Load().Theme);
         Assert.NotNull(store.LastError);
     }
 
@@ -251,7 +266,8 @@ public class ConfigStoreTests
     public void Champs_absents_completes()
     {
         var cfg = ConfigStore.Normalize(ConfigStore.Deserialize<LauncherConfig>("{\"Version\":2,\"Theme\":\"sumi\"}"));
-        Assert.Equal("sumi", cfg.Theme);
+        Assert.Equal(Themes.Auto, cfg.Theme);
+        Assert.Equal("sumi", cfg.NightTheme);
         Assert.NotEmpty(cfg.Inputs);
         Assert.NotEmpty(cfg.AlwaysVisible);
         Assert.Equal("com.samsung.tv.csfs", cfg.SamsungHomeAppId);
@@ -285,7 +301,7 @@ public class ConfigStoreTests
             cfg.Theme = Themes.Next(cfg.Theme);
             Assert.True(store.Save(cfg));                            // remplacement d'un fichier existant
         }
-        Assert.Equal("sumi", new ConfigStore(path).Load().Theme);   // kuri → fume → japandi → sumi
+        Assert.Equal("japandi", new ConfigStore(path).Load().Theme);   // automatique → kuri → fume → japandi
     }
 
     [Fact]
@@ -296,7 +312,7 @@ public class ConfigStoreTests
         File.WriteAllText(path, "{\"Version\":1,\"Theme\":\"nuit\",\"DevLogHost\":\"10.0.0.5\",\"Pinned\":[]}");
         var cfg = new ConfigStore(path).Load();
         Assert.Equal(LauncherConfig.CurrentVersion, cfg.Version);
-        Assert.Equal("kuri", cfg.Theme);
+        Assert.Equal(Themes.Auto, cfg.Theme);
         Assert.Equal(7, cfg.Pinned.Count);
         Assert.Equal("10.0.0.5", cfg.DevLogHost);
     }
@@ -310,9 +326,9 @@ public class ConfigStoreTests
             "{\"Name\":\"Netflix\",\"AppIds\":[\"org.tizen.netflix-app\"]}," +
             "{\"Name\":\"Plex\",\"AppIds\":[\"kIciSQlYEM.plex\"]}]}");
         var cfg = new ConfigStore(path).Load();
-        Assert.Equal("sumi", cfg.Theme);                                  // réglages conservés
+        Assert.Equal("sumi", cfg.NightTheme);                             // réglages conservés (thème du soir)
         Assert.Equal(new[] { "Netflix", "YouTube", "Plex", "Free TV" }, cfg.Pinned.Select(p => p.Name));
-        Assert.Equal(4, cfg.Version);
+        Assert.Equal(LauncherConfig.CurrentVersion, cfg.Version);
         // Déjà épinglée (autre nom) : pas de doublon.
         File.WriteAllText(path, "{\"Version\":3,\"Pinned\":[{\"Name\":\"Oqee\",\"AppIds\":[\"znCs95n93Q.OqeeTV\"]}]}");
         Assert.Equal(new[] { "YouTube", "Oqee" }, new ConfigStore(path).Load().Pinned.Select(p => p.Name));
@@ -327,7 +343,7 @@ public class ConfigStoreTests
             "{\"Name\":\"Netflix\",\"AppIds\":[\"org.tizen.netflix-app\"]}," +
             "{\"Name\":\"Spotify\",\"AppIds\":[\"rJeHak5zRg.Spotify\"]}]}");
         var cfg = new ConfigStore(path).Load();
-        Assert.Equal("fume", cfg.Theme);
+        Assert.Equal("fume", cfg.NightTheme);
         Assert.Equal(new[] { "Netflix", "YouTube", "Spotify" }, cfg.Pinned.Select(p => p.Name));
         Assert.Equal("xvvl3S1TT1.TizenTubeStandalone", cfg.Pinned[1].AppIds[0]);
         // TizenTube déjà épinglé sous un autre nom : pas de doublon.
@@ -348,7 +364,7 @@ public class ConfigStoreTests
     {
         Assert.Equal(new[] { "kuri", "fume", "japandi", "sumi", "hinoki" }, Themes.All.Select(t => t.Id));
         Assert.Equal("fume", Themes.Next("kuri"));
-        Assert.Equal("kuri", Themes.Next("hinoki"));
+        Assert.Equal(Themes.Auto, Themes.Next("hinoki"));
         Assert.Equal("kuri", Themes.Get("inconnu").Id);
         Assert.Equal("res:wallpapers/kuri.jpg", Themes.Get("kuri").Wallpaper);
         Assert.True(Themes.Get("kuri").SoftenTiles);

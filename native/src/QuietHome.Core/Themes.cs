@@ -49,7 +49,12 @@ namespace QuietHome.Core
     /// </summary>
     public static class Themes
     {
-        /// <summary>Ordre du bouton de thème. Le premier est le thème par défaut.</summary>
+        /// <summary>Valeur de LauncherConfig.Theme : thème clair le jour, sombre le soir.</summary>
+        public const string Auto = "auto";
+        /// <summary>Thème automatique sans lieu connu : jour de 7 h à 19 h (heure locale).</summary>
+        public const int DayStartHour = 7, NightStartHour = 19;
+
+        /// <summary>Ordre du bouton de thème, après « Automatique ». Le premier sert de repli.</summary>
         public static readonly IReadOnlyList<ThemeSpec> All = new List<ThemeSpec>
         {
             // Japandi sombre : mur de tasseaux en noyer, lin et ocre.
@@ -119,11 +124,35 @@ namespace QuietHome.Core
 
         public static ThemeSpec Get(string id) => All.FirstOrDefault(t => t.Id == id) ?? All[0];
 
+        public static bool Exists(string id) => All.Any(t => t.Id == id);
+
+        /// <summary>Bouton Thème : Automatique, puis chaque thème dans l'ordre, puis de nouveau Automatique.</summary>
         public static string Next(string id)
         {
-            int i = All.ToList().FindIndex(t => t.Id == id);
-            return All[(i + 1) % All.Count].Id;
+            var ids = new List<string> { Auto };
+            ids.AddRange(All.Select(t => t.Id));
+            return ids[(ids.IndexOf(id) + 1) % ids.Count];
         }
+
+        /// <summary>Thème à afficher maintenant : celui choisi, ou en mode automatique celui du moment.</summary>
+        public static ThemeSpec Resolve(LauncherConfig cfg, DateTimeOffset now) =>
+            cfg.Theme != Auto ? Get(cfg.Theme) : Get(IsDay(cfg, now) ? cfg.DayTheme : cfg.NightTheme);
+
+        /// <summary>Jour : soleil levé au lieu configuré ; sans lieu, entre DayStartHour et NightStartHour.</summary>
+        public static bool IsDay(LauncherConfig cfg, DateTimeOffset now) => cfg.HasPlace
+            ? Sun.Elevation(now.UtcDateTime, cfg.Latitude.Value, cfg.Longitude.Value) > Sun.Horizon
+            : now.Hour >= DayStartHour && now.Hour < NightStartHour;
+
+        /// <summary>Thème clair (fond clair, texte sombre), destiné au jour.</summary>
+        public static bool IsLight(ThemeSpec theme)
+        {
+            var c = ParseColor(theme.BackgroundFrom);
+            return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2] > 0.5;
+        }
+
+        /// <summary>Nom annoncé par le bouton Thème.</summary>
+        public static string Describe(LauncherConfig cfg) => cfg.Theme != Auto ? Get(cfg.Theme).Name
+            : "Automatique (jour : " + Get(cfg.DayTheme).Name + ", soir : " + Get(cfg.NightTheme).Name + ")";
 
         public static Brand BrandFor(string label)
         {

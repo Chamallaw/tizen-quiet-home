@@ -69,8 +69,12 @@ function Get-SignedTpk {
 
 function Build-Tpk {
     Invoke-Checked $Dotnet @('build', $Project, '-c', 'Release', "-p:Version=$Version", '--nologo', '-v', 'q')
-    Invoke-Checked 'python' @('-I', (Join-Path $PSScriptRoot 'pack_tpk.py'), $BinDir,
+    $PackArgs = @('-I', (Join-Path $PSScriptRoot 'pack_tpk.py'), $BinDir,
         (Join-Path $Native 'src\QuietHome.Launcher\tizen-manifest.xml'), (Join-Path $Native 'res'), $Version, $Unsigned)
+    # Réglages propres à cette TV (lieu de la météo) : .local/ n'est jamais publié, seul le paquet les embarque.
+    $LocalJson = Join-Path (Split-Path -Parent $Native) '.local\quiethome.json'
+    if (Test-Path $LocalJson) { $PackArgs += $LocalJson }
+    Invoke-Checked 'python' $PackArgs
 }
 
 function Sign-Tpk {

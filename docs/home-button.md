@@ -4,7 +4,7 @@
 
 | Geste | Résultat |
 |---|---|
-| **Home** depuis une app (Netflix, YouTube, Jellyfin…) | Retour à Quiet Home en moins d'une seconde. La barre Samsung apparaît un instant. |
+| **Home** depuis une app (Netflix, YouTube, Jellyfin…) | Retour à Quiet Home en moins d'une seconde, sélection sur la tuile de cette app. La barre Samsung apparaît un instant. |
 | **Home deux fois** : le second appui moins de 6 s après le retour | L'accueil Samsung reste affiché (Smart Hub, paramètres natifs). |
 | **Source** → HDMI (PS5, Switch…) | Jamais intercepté. |
 | Récupération → *Ouvrir l'accueil Samsung* | Jamais intercepté. |

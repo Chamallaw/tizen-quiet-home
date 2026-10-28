@@ -7,6 +7,7 @@ Produit :
     res/icons/apps.png       grille 3x3 (blanc)
     res/icons/settings.png   curseurs de réglage (blanc, teinté par l'UI)
     res/icons/theme.png      cercle à moitié plein : changer de thème
+    res/icons/weather-*.png  météo au trait : soleil, lune, nuages, brouillard, bruine, pluie, neige, orage
 Les icônes blanches sont teintées ou posées sur les dégradés par l'interface.
 Ce sont des pictogrammes génériques dessinés ici ; les logos officiels viennent de fetch_marks.py.
 """
@@ -129,18 +130,91 @@ def apps(x, y):
 
 
 def settings(x, y):
+    """Trois curseurs au trait : ligne interrompue autour d'un bouton annulaire (même trait que la météo)."""
     d = 1e9
-    for k, (ly, kx) in enumerate(((72, 160), (128, 96), (184, 176))):
-        d = min(d, sd_segment(x, y, 40, ly, 216, ly, 12))
-        d = min(d, sd_circle(x, y, kx, ly, 22))
+    for ly, kx in ((72, 160), (128, 96), (184, 176)):
+        line = max(sd_segment(x, y, 36, ly, 220, ly, WS), -sd_circle(x, y, kx, ly, 32))
+        d = min(d, line, sd_ring(x, y, kx, ly, 20, WS))
     return d
 
 
 def theme(x, y):
+    """Cercle au trait, moitié gauche pleine (jour / nuit), séparée du contour par un jour."""
     c = S / 2
-    ring = sd_ring(x, y, c, c, 82, 14)
-    half = max(sd_circle(x, y, c, c, 76), x - c)   # moitié gauche pleine
+    ring = sd_ring(x, y, c, c, 84, WS)
+    half = max(sd_circle(x, y, c, c, 62), x - c)
     return min(ring, half)
+
+
+# ---------- météo : pictogrammes au trait, lisibles à 30 px ----------
+
+WS = 16  # épaisseur du trait
+
+
+def smin(a, b, k):
+    """Union douce de deux formes (k : rayon du raccord)."""
+    h = max(k - abs(a - b), 0.0) / k
+    return min(a, b) - h * h * k / 4
+
+
+def cloud_fill(x, y, ox=0.0, oy=0.0, s=1.0):
+    """Nuage plein : base arrondie et deux bosses fondues. ox, oy : décalage ; s : échelle."""
+    x, y = (x - 128 - ox) / s + 128, (y - 128 - oy) / s + 128
+    d = smin(sd_round_rect(x, y, 128, 166, 86, 36, 36), sd_circle(x, y, 98, 138, 42), 18)
+    return smin(d, sd_circle(x, y, 150, 120, 56), 18) * s
+
+
+def sun_shape(x, y, cx, cy, r):
+    """Soleil : cercle et huit rayons."""
+    d = sd_ring(x, y, cx, cy, r, WS)
+    for k in range(8):
+        c, s = math.cos(k * math.pi / 4), math.sin(k * math.pi / 4)
+        d = min(d, sd_segment(x, y, cx + c * r * 1.5, cy + s * r * 1.5, cx + c * r * 1.95, cy + s * r * 1.95, WS))
+    return d
+
+
+def moon_shape(x, y, cx, cy, r):
+    """Croissant."""
+    crescent = max(sd_circle(x, y, cx, cy, r), -sd_circle(x, y, cx + r * 0.45, cy - r * 0.40, r * 0.80))
+    return outline(crescent, WS)
+
+
+def behind_cloud(shape, ox, oy, s):
+    """Astre en haut à gauche, masqué par un nuage au premier plan (avec un léger jour)."""
+    def sdf(x, y):
+        fill = cloud_fill(x, y, ox, oy, s)
+        return min(max(shape(x, y), -(fill - 12)), outline(fill, WS))
+    return sdf
+
+
+def with_precipitation(marks):
+    """Nuage remonté et, dessous, des gouttes, des flocons ou un éclair."""
+    def sdf(x, y):
+        return min(outline(cloud_fill(x, y, 0, -30, 0.92), WS), marks(x, y))
+    return sdf
+
+
+def weather_icons():
+    rain = lambda x, y: min(sd_segment(x, y, cx + 7, top, cx - 7, top + 34, WS)
+                            for cx, top in ((92, 188), (128, 200), (164, 188)))
+    drizzle = lambda x, y: min(sd_segment(x, y, cx + 3, top, cx - 3, top + 12, WS)
+                               for cx, top in ((92, 190), (128, 204), (164, 190), (110, 224), (146, 224)))
+    snow = lambda x, y: min(sd_circle(x, y, cx, cy, 9)
+                            for cx, cy in ((92, 194), (128, 208), (164, 194), (110, 230), (146, 230)))
+    bolt = lambda x, y: sd_polyline(x, y, [(142, 176), (116, 210), (146, 210), (120, 244)], WS, closed=False)
+    fog = lambda x, y: min(sd_segment(x, y, 60, 198, 180, 198, WS), sd_segment(x, y, 92, 228, 204, 228, WS))
+    return {
+        "weather-sun": lambda x, y: sun_shape(x, y, 128, 128, 40),
+        "weather-moon": lambda x, y: moon_shape(x, y, 120, 136, 76),
+        "weather-sun-cloud": behind_cloud(lambda x, y: sun_shape(x, y, 92, 92, 28), 22, 30, 0.80),
+        "weather-moon-cloud": behind_cloud(lambda x, y: moon_shape(x, y, 92, 96, 50), 22, 30, 0.80),
+        "weather-cloud": lambda x, y: outline(cloud_fill(x, y, 0, -4), WS),
+        "weather-fog": with_precipitation(fog),
+        "weather-drizzle": with_precipitation(drizzle),
+        "weather-rain": with_precipitation(rain),
+        "weather-snow": with_precipitation(snow),
+        "weather-storm": with_precipitation(bolt),
+    }
 
 
 def quiethome(size=512):
@@ -177,7 +251,7 @@ def quiethome(size=512):
 
 def main(res):
     res = pathlib.Path(res)
-    for name, fn in (("apps", apps), ("settings", settings), ("theme", theme)):
+    for name, fn in (("apps", apps), ("settings", settings), ("theme", theme), *weather_icons().items()):
         write_png(res / "icons" / f"{name}.png", S, render(S, white(fn)))
     write_png(res / "quiethome.png", 512, quiethome())
 

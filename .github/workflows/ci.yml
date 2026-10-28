@@ -1,0 +1,40 @@
+# Tests à chaque push et pull request : logique du launcher (xUnit), compilation pour la TV, prototype web.
+# Le paquet .tpk n'est pas produit ici : il se signe avec le certificat Samsung de chaque TV.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+
+jobs:
+  native:
+    name: Launcher natif
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+      - name: Tests du Core
+        run: dotnet test native/tests/QuietHome.Core.Tests
+      - name: Compilation du launcher (Tizen.NET, API 9)
+        run: dotnet build native/src/QuietHome.Launcher -c Release
+
+  web:
+    name: Prototype web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Tests
+        run: node --test web/tests/*.test.js

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace QuietHome.Core
@@ -69,6 +70,20 @@ namespace QuietHome.Core
         {
             for (int i = 0; i < rows.Count; i++)
                 if (rows[i].Id == rowId && rows[i].Tiles.Count > 0) RowIndex = i;
+        }
+
+        /// <summary>Place le focus sur la première tuile qui correspond ; false (focus inchangé) si aucune.</summary>
+        public bool FocusTile(Func<Tile, bool> match)
+        {
+            for (int r = 0; r < rows.Count; r++)
+                for (int c = 0; c < rows[r].Tiles.Count; c++)
+                {
+                    if (!match(rows[r].Tiles[c])) continue;
+                    RowIndex = r;
+                    columns[rows[r].Id] = c;
+                    return true;
+                }
+            return false;
         }
 
         int HomeRow()

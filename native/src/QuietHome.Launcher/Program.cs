@@ -18,7 +18,11 @@ namespace QuietHome
             AppDomain.CurrentDomain.UnhandledException += (s, e) => Log.Error("exception non gérée : " + e.ExceptionObject);
             try
             {
-                var store = new ConfigStore(System.IO.Path.Combine(DirectoryInfo.Data, "config.json"));
+                var store = new ConfigStore(System.IO.Path.Combine(DirectoryInfo.Data, "config.json"))
+                {
+                    // Lieu de la météo, propre à cette installation (embarqué au build depuis .local/quiethome.json).
+                    Overrides = ConfigStore.ReadOverrides(System.IO.Path.Combine(DirectoryInfo.Resource, "local.json")),
+                };
                 var cfg = store.Load();
                 Log.EnableUdp(string.IsNullOrEmpty(cfg.DevLogHost) ? DeveloperHost() : cfg.DevLogHost, cfg.DevLogPort);
                 Log.Info("démarrage " + ApplicationInfo.ApplicationId + " " + typeof(App).Assembly.GetName().Version);
@@ -28,7 +32,8 @@ namespace QuietHome
                 Log.Info("polices DM Sans : " + (FontClient.Instance.AddCustomFontDirectory(fonts) ? "ok" : "échec"));
                 var window = GetDefaultWindow();
                 window.Title = "Quiet Home";
-                home = new HomeScreen(window, store, new AppService(), ApplicationInfo.ApplicationId);
+                var weather = new WeatherService(System.IO.Path.Combine(DirectoryInfo.Data, "weather.json"));
+                home = new HomeScreen(window, store, new AppService(), weather, ApplicationInfo.ApplicationId);
                 window.KeyEvent += (s, e) => home.OnKey(e.Key);
                 home.RefreshApps(false);
             }
@@ -66,8 +71,8 @@ namespace QuietHome
         protected override void OnAppControlReceived(AppControlReceivedEventArgs e)
         {
             base.OnAppControlReceived(e);
-            // Relance de l'app déjà ouverte (barre Apps ou bouton Home) : retour à l'état d'accueil.
-            home?.ResetFocus();
+            // Relance de l'app déjà ouverte (barre Apps ou bouton Home) : accueil, sélection sur l'app qu'on vient de quitter.
+            home?.ReturnFocus();
         }
 
         protected override void OnPause()

@@ -1,6 +1,6 @@
 """Assemble un .tpk non signé (zip) à partir de la sortie de build.
 
-Usage : python -I pack_tpk.py <bin_dir> <manifest> <res_dir> <version> <out.tpk>
+Usage : python -I pack_tpk.py <bin_dir> <manifest> <res_dir> <version> <out.tpk> [local.json]
 
 Arborescence produite (format TPK .NET) :
     tizen-manifest.xml
@@ -8,10 +8,12 @@ Arborescence produite (format TPK .NET) :
     res/icons/*.png                (logos et pictogrammes des tuiles)
     res/wallpapers/*.jpg           (fonds 3840x2160, générés par make_wallpaper.py)
     res/fonts/*.ttf + OFL.txt      (DM Sans, fetch_fonts.py)
+    res/local.json                 (facultatif : lieu de la météo, tiré de .local/quiethome.json)
     shared/res/quiethome.png       (icône de l'app)
 Les assemblies Tizen et le runtime ne sont pas inclus : la TV les fournit.
 La signature est ajoutée ensuite par `tizen package -t tpk -s <profil>`.
 """
+import json
 import pathlib
 import sys
 import zipfile
@@ -20,7 +22,7 @@ import zipfile
 PAYLOAD = ("QuietHome.Launcher.dll", "QuietHome.Core.dll")
 
 
-def main(bin_dir, manifest, res_dir, version, out):
+def main(bin_dir, manifest, res_dir, version, out, local=None):
     bin_dir, res_dir, out = pathlib.Path(bin_dir), pathlib.Path(res_dir), pathlib.Path(out)
     icons = sorted((res_dir / "icons").glob("*.png"))
     if not icons or not (res_dir / "quiethome.png").exists():
@@ -31,6 +33,11 @@ def main(bin_dir, manifest, res_dir, version, out):
     missing = [n for n in PAYLOAD if not (bin_dir / n).exists()]
     if missing:
         sys.exit(f"build incomplet, manquant : {missing}")
+    if local:
+        try:
+            json.loads(pathlib.Path(local).read_text(encoding="utf-8-sig"))
+        except ValueError as e:
+            sys.exit(f"{local} : JSON invalide ({e})")
 
     out.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
@@ -43,6 +50,8 @@ def main(bin_dir, manifest, res_dir, version, out):
             z.write(wall, f"res/wallpapers/{wall.name}")
         for font in sorted((res_dir / "fonts").glob("*")):
             z.write(font, f"res/fonts/{font.name}")
+        if local:
+            z.writestr("res/local.json", pathlib.Path(local).read_text(encoding="utf-8-sig"))
         z.write(res_dir / "quiethome.png", "shared/res/quiethome.png")
     print(f"{out} ({out.stat().st_size} octets)")
     for info in zipfile.ZipFile(out).infolist():
@@ -50,6 +59,6 @@ def main(bin_dir, manifest, res_dir, version, out):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 6:
+    if len(sys.argv) not in (6, 7):
         sys.exit(__doc__)
     main(*sys.argv[1:])

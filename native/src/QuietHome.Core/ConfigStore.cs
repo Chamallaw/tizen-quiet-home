@@ -18,6 +18,9 @@ namespace QuietHome.Core
         public string Path => path;
         public string LastError { get; private set; }
 
+        /// <summary>Réglages de l'installation (res/local.json), appliqués à chaque chargement ; null = aucun.</summary>
+        public LocalOverrides Overrides { get; set; }
+
         public LauncherConfig Load()
         {
             LastError = null;
@@ -27,14 +30,46 @@ namespace QuietHome.Core
                 {
                     if (!File.Exists(candidate)) continue;
                     var cfg = Deserialize<LauncherConfig>(File.ReadAllText(candidate, Encoding.UTF8));
-                    if (cfg != null) return Normalize(cfg);
+                    if (cfg != null) return WithOverrides(Normalize(cfg));
                 }
                 catch (Exception e)
                 {
                     LastError = candidate + ": " + e.Message;
                 }
             }
-            return DefaultConfig.Create();
+            return WithOverrides(DefaultConfig.Create());
+        }
+
+        /// <summary>Lit res/local.json ; null s'il est absent ou illisible (l'accueil démarre quand même).</summary>
+        public static LocalOverrides ReadOverrides(string file)
+        {
+            try
+            {
+                return File.Exists(file) ? Deserialize<LocalOverrides>(File.ReadAllText(file, Encoding.UTF8)) : null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        LauncherConfig WithOverrides(LauncherConfig cfg)
+        {
+            if (Overrides == null) return cfg;
+            cfg.Place = Overrides.Place ?? "";
+            cfg.Latitude = Overrides.Latitude;
+            cfg.Longitude = Overrides.Longitude;
+            CheckPlace(cfg);
+            return cfg;
+        }
+
+        /// <summary>Un lieu incomplet ou hors bornes est ignoré (pas de météo, thème à heures fixes).</summary>
+        static void CheckPlace(LauncherConfig cfg)
+        {
+            if (cfg.Place == null) cfg.Place = "";
+            bool valid = cfg.Latitude is double lat && cfg.Longitude is double lon
+                && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
+            if (!valid) { cfg.Latitude = null; cfg.Longitude = null; }
         }
 
         public bool Save(LauncherConfig cfg)
@@ -70,7 +105,7 @@ namespace QuietHome.Core
         public LauncherConfig Reset()
         {
             try { if (File.Exists(path)) File.Delete(path); } catch (Exception e) { LastError = e.Message; }
-            return DefaultConfig.Create();
+            return WithOverrides(DefaultConfig.Create());
         }
 
         /// <summary>Complète les champs absents (fichier d'une version antérieure ou édité à la main).</summary>
@@ -97,6 +132,10 @@ namespace QuietHome.Core
             if (cfg.DevLogPort <= 0) cfg.DevLogPort = d.DevLogPort;
             if (cfg.AmbientMinutes == 0) cfg.AmbientMinutes = d.AmbientMinutes;
             if (cfg.HomeKey != LauncherConfig.HomeKeySamsung) cfg.HomeKey = LauncherConfig.HomeKeyQuietHome;
+            if (cfg.Weather != LauncherConfig.WeatherOff) cfg.Weather = LauncherConfig.WeatherOn;
+            if (!Themes.Exists(cfg.DayTheme)) cfg.DayTheme = d.DayTheme;
+            if (!Themes.Exists(cfg.NightTheme)) cfg.NightTheme = d.NightTheme;
+            CheckPlace(cfg);
             foreach (var p in cfg.Pinned) if (p.AppIds == null) p.AppIds = new System.Collections.Generic.List<string>();
             if (cfg.Version < 3)
             {
@@ -114,6 +153,13 @@ namespace QuietHome.Core
                     int netflix = cfg.Pinned.FindIndex(p => p.Name == "Netflix");
                     cfg.Pinned.Insert(netflix + 1, yt);
                 }
+            }
+            if (cfg.Version < 5 && cfg.Theme != Themes.Auto)
+            {
+                // Migration v5 : thème automatique. Le thème choisi garde son moment : le jour s'il est clair, le soir sinon.
+                var chosen = Themes.Get(cfg.Theme);
+                if (Themes.IsLight(chosen)) cfg.DayTheme = chosen.Id; else cfg.NightTheme = chosen.Id;
+                cfg.Theme = Themes.Auto;
             }
             cfg.Version = LauncherConfig.CurrentVersion;
             return cfg;
