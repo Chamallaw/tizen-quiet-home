@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 
@@ -118,9 +119,22 @@ namespace QuietHome.Core
         [DataMember(Order = 22)] public double? Longitude;
         /// <summary>Bandeau météo des prochaines 24 h : « on » ou « off ».</summary>
         [DataMember(Order = 23)] public string Weather = WeatherOn;
+        /// <summary>Son du déplacement du curseur : un nom de CursorSounds (res/sounds/tick-&lt;nom&gt;.wav) ou « off ».</summary>
+        [DataMember(Order = 24)] public string Sounds = CursorSounds[0];
 
         public const string HomeKeyQuietHome = "quiethome", HomeKeySamsung = "samsung";
         public const string WeatherOn = "on", WeatherOff = "off";
+        public const string SoundsOff = "off";
+        /// <summary>Sons du curseur, dans l'ordre du réglage ; le premier est le son par défaut.</summary>
+        public static readonly string[] CursorSounds = { "goutte", "bois", "kalimba" };
+
+        /// <summary>Réglage suivant (ou précédent) du son du curseur : chaque son, puis « off ».</summary>
+        public static string NextSound(string current, int step)
+        {
+            var all = new List<string>(CursorSounds) { SoundsOff };
+            int i = Math.Max(0, all.IndexOf(current));
+            return all[((i + step) % all.Count + all.Count) % all.Count];
+        }
 
         public bool HasPlace => Latitude.HasValue && Longitude.HasValue;
     }

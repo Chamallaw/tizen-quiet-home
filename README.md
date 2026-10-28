@@ -27,7 +27,13 @@
 - **Télécommande** :
   - flèches, OK, OK maintenu pour les options ;
   - touches 1 à 9 pour lancer les favoris ;
-  - transitions animées.
+  - transitions animées ;
+  - un son doux à chaque déplacement du curseur (Goutte, Bois ou Kalimba), désactivable.
+- **Réglages en deux parties** :
+  - *Télévision* : volume, paramètres de la TV, accueil Samsung ;
+  - *Quiet Home* : thème, son du curseur, météo, bouton Home.
+
+  Chaque réglage affiche sa valeur et se change sur place avec ◀ ▶.
 - **Récupération toujours accessible** : accueil Samsung, paramètres TV, réinitialisation, diagnostic (tests HDMI et volume, identification des touches).
 
 ### Les 5 thèmes
@@ -40,11 +46,11 @@
 |---|---|
 | ![](docs/images/theme-hinoki.png) | ![](docs/images/theme-japandi.png) |
 
-### Toutes les apps et écran de veille
+### Toutes les apps, réglages et écran de veille
 
-| Toutes les apps | Écran de veille |
-|---|---|
-| ![](docs/images/grille-apps.png) | ![](docs/images/veille.png) |
+| Toutes les apps | Réglages | Écran de veille |
+|---|---|---|
+| ![](docs/images/grille-apps.png) | ![](docs/images/reglages.png) | ![](docs/images/veille.png) |
 
 ## Principes
 

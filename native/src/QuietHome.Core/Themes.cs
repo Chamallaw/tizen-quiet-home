@@ -134,6 +134,15 @@ namespace QuietHome.Core
             return ids[(ids.IndexOf(id) + 1) % ids.Count];
         }
 
+        /// <summary>Thème précédent dans le même ordre (◀ dans Réglages).</summary>
+        public static string Previous(string id)
+        {
+            var ids = new List<string> { Auto };
+            ids.AddRange(All.Select(t => t.Id));
+            int i = Math.Max(0, ids.IndexOf(id));
+            return ids[(i - 1 + ids.Count) % ids.Count];
+        }
+
         /// <summary>Thème à afficher maintenant : celui choisi, ou en mode automatique celui du moment.</summary>
         public static ThemeSpec Resolve(LauncherConfig cfg, DateTimeOffset now) =>
             cfg.Theme != Auto ? Get(cfg.Theme) : Get(IsDay(cfg, now) ? cfg.DayTheme : cfg.NightTheme);

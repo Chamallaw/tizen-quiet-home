@@ -84,6 +84,8 @@ public class AutoThemeTests
         Assert.Equal("kuri", Themes.Next(Themes.Auto));
         Assert.Equal(Themes.Auto, Themes.Next("hinoki"));
         Assert.Equal(Themes.Auto, Themes.Next("inconnu"));
+        Assert.Equal("hinoki", Themes.Previous(Themes.Auto));
+        Assert.Equal(Themes.Auto, Themes.Previous("kuri"));
         Assert.Equal("Automatique (jour : Hinoki, soir : Kuri · noyer)", Themes.Describe(DefaultConfig.Create()));
         Assert.True(Themes.IsLight(Themes.Get("hinoki")));
         Assert.True(Themes.IsLight(Themes.Get("japandi")));
@@ -99,6 +101,16 @@ public class AutoThemeTests
         Assert.Equal("fume", dark.NightTheme);
         Assert.Equal("hinoki", dark.DayTheme);
         Assert.Equal(LauncherConfig.WeatherOn, dark.Weather);
+        Assert.Equal("goutte", dark.Sounds);   // son du curseur actif par défaut, y compris après mise à jour
+        Assert.Equal(LauncherConfig.SoundsOff, ConfigStore.Normalize(
+            ConfigStore.Deserialize<LauncherConfig>("{\"Version\":5,\"Sounds\":\"off\"}")).Sounds);
+        Assert.Equal("goutte", ConfigStore.Normalize(ConfigStore.Deserialize<LauncherConfig>("{\"Version\":5,\"Sounds\":\"on\"}")).Sounds);
+        Assert.Equal("kalimba", ConfigStore.Normalize(ConfigStore.Deserialize<LauncherConfig>("{\"Version\":5,\"Sounds\":\"kalimba\"}")).Sounds);
+        // ◀ ▶ dans Réglages : goutte → bois → kalimba → désactivé → goutte.
+        Assert.Equal("bois", LauncherConfig.NextSound("goutte", 1));
+        Assert.Equal(LauncherConfig.SoundsOff, LauncherConfig.NextSound("kalimba", 1));
+        Assert.Equal("goutte", LauncherConfig.NextSound(LauncherConfig.SoundsOff, 1));
+        Assert.Equal(LauncherConfig.SoundsOff, LauncherConfig.NextSound("goutte", -1));
         var light = ConfigStore.Normalize(ConfigStore.Deserialize<LauncherConfig>("{\"Version\":4,\"Theme\":\"japandi\"}"));
         Assert.Equal("japandi", light.DayTheme);
         Assert.Equal("kuri", light.NightTheme);

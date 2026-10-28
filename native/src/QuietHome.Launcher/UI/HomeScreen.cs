@@ -64,6 +64,7 @@ namespace QuietHome.UI
         const float WeatherTop = 880, WeatherIconSize = 30;
         static readonly TimeSpan WeatherEvery = TimeSpan.FromMinutes(60), WeatherRetry = TimeSpan.FromMinutes(10);
         readonly WeatherService weather;
+        readonly UiSound sound;
         readonly View weatherStrip;
         readonly List<TextLabel> weatherHours = new List<TextLabel>(), weatherTemps = new List<TextLabel>();
         readonly List<ImageView> weatherIcons = new List<ImageView>();
@@ -71,12 +72,13 @@ namespace QuietHome.UI
         DateTime weatherTried = DateTime.MinValue;
         bool weatherBusy, rowsLeaveRoom = true;
 
-        public HomeScreen(Window window, ConfigStore store, AppService apps, WeatherService weather, string selfAppId)
+        public HomeScreen(Window window, ConfigStore store, AppService apps, WeatherService weather, UiSound sound, string selfAppId)
         {
             this.window = window;
             this.store = store;
             this.apps = apps;
             this.weather = weather;
+            this.sound = sound;
             this.selfAppId = selfAppId;
             redirect = new HomeRedirect(selfAppId);
             config = store.Load();
@@ -398,7 +400,7 @@ namespace QuietHome.UI
             if (overlay != null)
             {
                 // OK est traité au relâchement côté accueil ; dans le panneau, à l'appui.
-                if (!(IsEnter(name) && enterDown)) overlay.HandleKey(name);
+                if (!(IsEnter(name) && enterDown) && overlay.HandleKey(name)) Tick();
                 return;
             }
 
@@ -406,10 +408,10 @@ namespace QuietHome.UI
             {
                 switch (name)
                 {
-                    case "Left": grid.Move(Direction.Left); break;
-                    case "Right": grid.Move(Direction.Right); break;
-                    case "Up": grid.Move(Direction.Up); break;
-                    case "Down": grid.Move(Direction.Down); break;
+                    case "Left": if (grid.Move(Direction.Left)) Tick(); break;
+                    case "Right": if (grid.Move(Direction.Right)) Tick(); break;
+                    case "Up": if (grid.Move(Direction.Up)) Tick(); break;
+                    case "Down": if (grid.Move(Direction.Down)) Tick(); break;
                     case "XF86Back": case "Back": case "Escape": case "BackSpace": CloseGrid(); break;
                     case "XF86Yellow": TogglePin(grid.Current); break;
                 }
@@ -477,10 +479,20 @@ namespace QuietHome.UI
                 int before = focus.Column(focus.RowIndex);
                 var next = Catalog.MovePin(config, tile, dir == Direction.Left ? -1 : 1);
                 focus.Move(dir);
-                if (focus.Column(focus.RowIndex) != before) UpdateConfig(next);
+                if (focus.Column(focus.RowIndex) != before) { UpdateConfig(next); Tick(); }
                 return;
             }
-            if (focus.Move(dir)) ApplyFocus(true);
+            if (focus.Move(dir))
+            {
+                ApplyFocus(true);
+                Tick();
+            }
+        }
+
+        /// <summary>Petit son du curseur, sauf s'il est désactivé dans Réglages.</summary>
+        void Tick()
+        {
+            if (config.Sounds != LauncherConfig.SoundsOff) sound.Tick(config.Sounds);
         }
 
         public void ResetFocus()
@@ -901,10 +913,10 @@ namespace QuietHome.UI
         }
 
         /// <summary>Bouton Thème : passe au suivant et l'enregistre aussitôt ; le focus reste sur le bouton.</summary>
-        void CycleTheme()
+        void CycleTheme(int step = 1)
         {
             var next = ConfigStore.Clone(config);
-            next.Theme = Themes.Next(config.Theme);
+            next.Theme = step >= 0 ? Themes.Next(config.Theme) : Themes.Previous(config.Theme);
             config = next;
             bool saved = store.Save(config);
             if (!saved) Log.Error("thème non sauvegardé : " + store.LastError);
@@ -915,50 +927,98 @@ namespace QuietHome.UI
             Toast(saved ? name : name + " (non sauvegardé)");
         }
 
-        /// <summary>Panneau de la tuile Réglages : son, bouton Home, météo, paramètres Samsung, récupération.</summary>
+        /// <summary>
+        /// Panneau de la tuile Réglages, en deux parties : la télévision (volume, paramètres et accueil Samsung),
+        /// puis Quiet Home (thème, son du curseur, météo, bouton Home, récupération). Les réglages se règlent
+        /// sur place avec ◀ ▶ (ou OK), leur valeur s'affiche à droite.
+        /// </summary>
         void ShowSettings(int selection)
         {
+            var volume = new OverlayMenu.Item("Volume", null, keepOpen: true) { Value = VolumeValue(TvControls.ChangeVolume(0)) };
+            volume.Adjust = step => volume.Value = VolumeValue(TvControls.ChangeVolume(2 * step));
+            volume.Run = () => volume.Value = VolumeValue(TvControls.ToggleMute());
+
+            var theme = new OverlayMenu.Item("Thème", null, keepOpen: true) { Value = ThemeValue() };
+            theme.Adjust = step => { CycleTheme(step); theme.Value = ThemeValue(); };
+
+            var sounds = new OverlayMenu.Item("Son du curseur", null, keepOpen: true) { Value = SoundValue() };
+            sounds.Adjust = step =>
+            {
+                var next = ConfigStore.Clone(config);
+                next.Sounds = LauncherConfig.NextSound(config.Sounds, step);
+                SaveSetting(next);
+                sounds.Value = SoundValue();
+            };
+
+            var home = new OverlayMenu.Item("Bouton Home", null, keepOpen: true) { Value = HomeKeyValue() };
+            home.Adjust = step =>
+            {
+                var next = ConfigStore.Clone(config);
+                next.HomeKey = config.HomeKey == LauncherConfig.HomeKeyQuietHome ? LauncherConfig.HomeKeySamsung : LauncherConfig.HomeKeyQuietHome;
+                SaveSetting(next);
+                home.Value = HomeKeyValue();
+            };
+
             var items = new List<OverlayMenu.Item>
             {
-                new OverlayMenu.Item("Volume −", () => Toast(TvControls.ChangeVolume(-2)), keepOpen: true),
-                new OverlayMenu.Item("Volume +", () => Toast(TvControls.ChangeVolume(+2)), keepOpen: true),
-                new OverlayMenu.Item("Muet", () => Toast(TvControls.ToggleMute()), keepOpen: true),
-                new OverlayMenu.Item(config.HomeKey == LauncherConfig.HomeKeyQuietHome
-                    ? "Bouton Home : Quiet Home (2 appuis = Samsung)" : "Bouton Home : accueil Samsung", () =>
-                {
-                    var next = ConfigStore.Clone(config);
-                    next.HomeKey = config.HomeKey == LauncherConfig.HomeKeyQuietHome ? LauncherConfig.HomeKeySamsung : LauncherConfig.HomeKeyQuietHome;
-                    UpdateConfig(next);
-                    ShowSettings(3); // rouvert sur la même ligne, libellé à jour
-                }),
+                OverlayMenu.Item.Section("Télévision"),
+                volume,
+                new OverlayMenu.Item("Paramètres de la TV", () => OpenSettings(null)) { Value = "Samsung" },
+                new OverlayMenu.Item("Accueil Samsung", OpenSamsungHome) { Value = "Smart Hub" },
+                OverlayMenu.Item.Section("Quiet Home"),
+                theme,
+                sounds,
             };
             if (config.HasPlace)
             {
-                bool on = config.Weather == LauncherConfig.WeatherOn;
-                items.Add(new OverlayMenu.Item(on ? "Météo : affichée" + (string.IsNullOrEmpty(config.Place) ? "" : " (" + config.Place + ")")
-                    : "Météo : masquée", () =>
+                var weatherItem = new OverlayMenu.Item("Météo", null, keepOpen: true) { Value = WeatherValue() };
+                weatherItem.Adjust = step =>
                 {
                     var next = ConfigStore.Clone(config);
-                    next.Weather = on ? LauncherConfig.WeatherOff : LauncherConfig.WeatherOn;
-                    UpdateConfig(next);
+                    next.Weather = config.Weather == LauncherConfig.WeatherOn ? LauncherConfig.WeatherOff : LauncherConfig.WeatherOn;
+                    SaveSetting(next);
                     RefreshWeather();
-                    ShowSettings(4);
-                }));
+                    weatherItem.Value = WeatherValue();
+                };
+                items.Add(weatherItem);
             }
-            items.Add(new OverlayMenu.Item("Paramètres de la TV", () => OpenSettings(null)));
-            items.Add(new OverlayMenu.Item("Récupération", ShowRecovery));
+            items.Add(home);
+            items.Add(new OverlayMenu.Item("Récupération et diagnostic", ShowRecovery));
             ShowOverlay("Réglages", items, selection);
+        }
+
+        /// <summary>Enregistre un réglage changé depuis le panneau, qui reste ouvert.</summary>
+        void SaveSetting(LauncherConfig next)
+        {
+            config = next;
+            if (!store.Save(config)) Toast("Sauvegarde impossible : " + store.LastError);
+            Rebuild();
+        }
+
+        static string VolumeValue(string message) =>
+            message.StartsWith("Volume ") && int.TryParse(message.Substring(7), out var level) ? level.ToString(CultureInfo.InvariantCulture) : message;
+
+        string ThemeValue() => config.Theme == Themes.Auto ? "Automatique" : Themes.Get(config.Theme).Name;
+
+        string SoundValue() => config.Sounds == LauncherConfig.SoundsOff ? "Désactivé"
+            : char.ToUpper(config.Sounds[0], Fr) + config.Sounds.Substring(1);
+
+        string WeatherValue() => config.Weather != LauncherConfig.WeatherOn ? "Masquée"
+            : string.IsNullOrEmpty(config.Place) ? "Affichée" : "Affichée · " + config.Place;
+
+        string HomeKeyValue() => config.HomeKey == LauncherConfig.HomeKeyQuietHome ? "Quiet Home" : "Accueil Samsung";
+
+        void OpenSamsungHome()
+        {
+            lock (redirectLock) redirect.AllowSamsungHome();
+            if (!apps.Launch(config.SamsungHomeAppId)) Toast("Accueil Samsung introuvable");
         }
 
         void ShowRecovery()
         {
-            ShowOverlay("Récupération", new List<OverlayMenu.Item>
+            ShowOverlay("Récupération et diagnostic", new List<OverlayMenu.Item>
             {
-                new OverlayMenu.Item("Ouvrir l'accueil Samsung", () =>
-                {
-                    lock (redirectLock) redirect.AllowSamsungHome();
-                    if (!apps.Launch(config.SamsungHomeAppId)) Toast("Accueil Samsung introuvable");
-                }),
+                new OverlayMenu.Item("Ouvrir l'accueil Samsung", OpenSamsungHome),
                 new OverlayMenu.Item("Paramètres TV", () => OpenSettings(null)),
                 new OverlayMenu.Item("Paramètres réseau", () => OpenSettings("networksettings")),
                 new OverlayMenu.Item("Gérer les favoris (liste)", () => ShowManageFavorites(0)),

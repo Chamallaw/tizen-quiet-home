@@ -7,10 +7,18 @@
 | Ajouter ou retirer un favori | OK maintenu sur une tuile, ou *Toutes les apps* → OK maintenu |
 | Réordonner les favoris | OK maintenu → *Déplacer*, puis ◀ ▶ et OK |
 | Masquer une app | OK maintenu → *Masquer* (Récupération → *Réafficher les apps masquées* pour annuler) |
-| Changer de thème | Bouton ◐ en haut à droite : *Automatique*, puis chacun des 5 thèmes (mémorisé) |
+| Changer de thème | Bouton ◐ en haut à droite, ou Réglages → *Thème* avec ◀ ▶ : *Automatique*, puis chacun des 5 thèmes (mémorisé) |
+| Son du curseur | Réglages → *Son du curseur*, ◀ ▶ : Goutte, Bois, Kalimba ou Désactivé. Le son choisi est joué à chaque changement |
 | Bouton Home | Réglages → *Bouton Home* |
 | Afficher ou masquer la météo | Réglages → *Météo* (si un lieu est indiqué) |
-| Repartir de zéro | Réglages → Récupération → *Réinitialiser la configuration* |
+| Volume | Réglages → *Volume* : ◀ ▶ règle, OK coupe ou rétablit le son |
+| Repartir de zéro | Réglages → Récupération et diagnostic → *Réinitialiser la configuration* |
+
+Le panneau Réglages a deux parties :
+- **Télévision** : volume, paramètres de la TV (ceux de Samsung) et accueil Samsung (Smart Hub) ;
+- **Quiet Home** : thème, son du curseur, météo, bouton Home, puis *Récupération et diagnostic*.
+
+Chaque réglage affiche sa valeur à droite et se change sur place avec ◀ ▶ (ou OK), sans fermer le panneau.
 
 La configuration est stockée sur la TV, dans le dossier `data` de l'app. Elle est conservée lors des mises à jour et effacée à la désinstallation.
 
@@ -55,7 +63,8 @@ La météo ne s'active que si vous indiquez un lieu, dans `.local/quiethome.json
 | Palettes des 5 thèmes | `Themes.All`, dans `Themes.cs` |
 | Fonds bois 4K (Kuri, Chêne fumé) | `native/tools/make_wallpaper.py <chrome.exe>` : veinage procédural, voile de lisibilité intégré |
 | Pictogrammes (apps, réglages, thème, météo) et logo de l'app | `native/tools/make_icons.py` |
+| Sons du curseur (Goutte, Bois, Kalimba) | `native/tools/make_sounds.py` : sinusoïdes pures, courtes (0,11 à 0,15 s), attaque arrondie, niveau bas |
 | Police DM Sans (OFL) | `native/tools/fetch_fonts.py`, enregistrée au démarrage via `FontClient.AddCustomFontDirectory` |
-| Rendus de l'accueil (jour et soir), de la grille et de la veille | `native/tools/make_preview_kuri.py`, puis capture avec Chrome headless |
+| Rendus de l'accueil (5 thèmes), de la grille, des réglages et de la veille | `native/tools/make_preview_kuri.py`, puis capture avec Chrome headless |
 
 Toutes les ressources générées sont déjà dans `native/res/`. Ces outils ne servent qu'à les modifier.

@@ -243,6 +243,41 @@ body{{position:relative;font-family:"DM Sans",sans-serif;color:{t['Text']};backg
     return page
 
 
+
+def settings_page(home_html, theme_id="kuri"):
+    """Panneau Réglages (OverlayMenu) sur l'accueil : sections, valeurs à droite, ligne sélectionnée."""
+    t = theme(theme_id)
+    rows = [("h", "Télévision"), ("Volume", "18"), ("Paramètres de la TV", "Samsung"), ("Accueil Samsung", "Smart Hub"),
+            ("h", "Quiet Home"), ("Thème", "Automatique"), ("Son du curseur", "‹  Goutte  ›"), ("Météo", "Affichée · Lyon"),
+            ("Bouton Home", "Quiet Home"), ("Récupération et diagnostic", "")]
+    selected = 6
+    line_h, top, pad, w = 64, 150, 60, 1040
+    h = top + len(rows) * line_h + 90
+    x0, y0 = (1920 - w) / 2, (1080 - h) / 2
+    out = [f'<div style="position:absolute;inset:0;background:rgba(0,0,0,.67)"></div>',
+           f'<div style="position:absolute;left:{x0}px;top:{y0}px;width:{w}px;height:{h}px;border-radius:28px;background:{t["Surface"]}">',
+           f'<div style="position:absolute;left:{pad}px;top:44px;font-size:{28 * PT:.0f}px;font-weight:300;color:{t["Text"]}">Réglages</div>']
+    for i, (label, value) in enumerate(rows):
+        y = top + i * line_h
+        if label == "h":
+            out.append(f'<div style="position:absolute;left:{pad + 8}px;top:{y + 30}px;font-size:{12 * PT:.0f}px;letter-spacing:.3em;'
+                       f'color:{t["Muted"]}">{value.upper()}</div>')
+            continue
+        on = i == selected
+        if on:
+            out.append(f'<div style="position:absolute;left:{pad - 16}px;top:{y}px;width:{w - 2 * pad + 32}px;height:{line_h - 8}px;'
+                       f'border-radius:{(line_h - 8) / 2}px;background:{t["Accent"]}"></div>')
+        color = t["AccentText"] if on else t["Text"]
+        vcolor = t["AccentText"] if on else t["Muted"]
+        out.append(f'<div style="position:absolute;left:{pad + 8}px;top:{y}px;height:{line_h - 8}px;line-height:{line_h - 8}px;'
+                   f'font-size:{18 * PT:.0f}px;color:{color}">{label}</div>'
+                   f'<div style="position:absolute;right:{pad + 8}px;top:{y}px;height:{line_h - 8}px;line-height:{line_h - 8}px;'
+                   f'font-size:{17 * PT:.0f}px;font-weight:300;color:{vcolor}">{value}</div>')
+    out.append(f'<div style="position:absolute;left:{pad}px;top:{h - 64}px;font-size:{13 * PT:.0f}px;color:{t["Muted"]}">'
+               '◀ ▶ pour régler · Retour pour fermer</div></div>')
+    return home_html.replace("</body>", "".join(out) + "</body>")
+
+
 def main(out_dir=None):
     out_dir = pathlib.Path(out_dir or ROOT / "preview")
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -257,6 +292,7 @@ def main(out_dir=None):
         page = home_page(theme_id, "21:47", "Bonsoir", 20, 21) if dark else home_page(theme_id, "10:24", "Bonjour", 9, 10)
         (out_dir / f"accueil-{theme_id}.html").write_text(page, encoding="utf-8")
         print(out_dir / f"accueil-{theme_id}.html")
+    (out_dir / "reglages-kuri.html").write_text(settings_page(night), encoding="utf-8")
     (out_dir / "accueil-kuri-reglages.html").write_text(
         home_page("kuri", "21:47", "Bonsoir", start=20, first_local_hour=21, focus_settings=True), encoding="utf-8")
     head = night.split("<body>")[0].replace("</style>", """
